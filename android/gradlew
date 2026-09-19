@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# Flutter-generated Gradle launcher.
+# The Gradle wrapper JAR is intentionally not committed by this API-only change;
+# run `flutter create .` locally once to generate the matching binary wrapper JAR.
+APP_HOME=$(cd "${0%/*}" && pwd -P)
+exec "$APP_HOME/gradlew" "$@"
