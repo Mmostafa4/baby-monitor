@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: Baby Monitor Cry Analysis API
+  version: 0.1.0
+paths:
+  /v1/cry-analysis:
+    post:
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Probabilistic, non-diagnostic analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '401': {description: Authentication required}
+        '402': {description: Trial or subscription required}
+        '413': {description: Audio is too large}
+        '422': {description: Invalid duration or format}
+        '503': {description: Model is not available}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    AnalysisResult:
+      type: object
+      required: [category, confidence, advice, urgent]
+      properties:
+        category: {type: string}
+        confidence: {type: number, minimum: 0, maximum: 1}
+        advice: {type: string}
+        urgent: {type: boolean}
