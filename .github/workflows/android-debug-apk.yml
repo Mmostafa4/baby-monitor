@@ -2,6 +2,9 @@ name: Android debug APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/android-ci-apk
 
 permissions:
   contents: read
