@@ -2,7 +2,7 @@
 
 Arabic-first Flutter MVP for Android, iOS, and the web.
 
-The current published iPhone Safari version is at [mmostafa4.github.io/baby-monitor](https://mmostafa4.github.io/baby-monitor/). Changes on this branch are not published automatically.
+The current published iPhone Safari version is at [mmostafa4.github.io/baby-monitor](https://mmostafa4.github.io/baby-monitor/). This branch is not live. Merging to `main` triggers the repository's existing GitHub Pages deployment.
 
 ## MVP features
 
