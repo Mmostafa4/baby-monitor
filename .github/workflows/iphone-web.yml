@@ -51,24 +51,6 @@ jobs:
         with:
           path: build/web
 
-  ios-build:
-    runs-on: macos-latest
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v6
-
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Resolve packages
-        run: flutter pub get
-
-      - name: Compile the native iPhone app without signing
-        run: flutter build ios --release --no-codesign
-
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build
