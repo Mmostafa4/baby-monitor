@@ -1,36 +1,27 @@
 # Baby Monitor
 
-Flutter MVP prepared as an installable iPhone Safari web app. This is not an App Store or TestFlight app.
+Arabic-first Flutter MVP for Android, iOS, and the web.
 
-## What is included
+The current published iPhone Safari version is at [mmostafa4.github.io/baby-monitor](https://mmostafa4.github.io/baby-monitor/). Changes on this branch are not published automatically.
 
-- Consent and child profile setup. The profile stays in local browser storage.
-- Arabic interface. The selected language is saved, but translations are not implemented yet.
-- Up to 10 seconds of microphone capture through an in-memory stream. Audio chunks are discarded as they arrive; no audio file is kept or uploaded.
-- The cry screen says “Analysis is currently unavailable.” The app does not interpret crying.
-- Reassurance fields are temporary and are not saved.
-- Vaccination entries are placeholders; official schedules and reminders are not connected.
-- Emergency guidance is static; nearby hospital search is not implemented.
-- The subscription screen is a mockup; purchases are not connected.
+## MVP features
 
-## Use it on iPhone
+- Local child profile and medical-notice consent.
+- Optional GPS consent during setup. Location is requested only after consent, and the Emergency screen shows a check when a location fix succeeds before opening Apple Maps. Coordinates are not saved.
+- Up to 10 seconds of microphone capture, an in-memory audio preview, and a delete action. The app does not save or upload audio.
+- Cry analysis remains unavailable and the screen says **Analysis is currently unavailable.**
+- Draft age-based vaccination reminders for the countries listed in onboarding, with local completion marks and links to source schedules. These are reminders, not a clinical catch-up plan.
+- A newborn Q&A screen that is disconnected by default. No question is sent in this MVP.
+- Subscription UI is a mockup; no purchase is connected.
 
-Open the [Baby Monitor web app](https://mmostafa4.github.io/baby-monitor/) in Safari. Tap **Share → Add to Home Screen → Add**, then open Baby Monitor from the Home Screen. Allow microphone access when you start a recording.
+## Device permissions
 
-The app records for up to 10 seconds, immediately discards the audio stream, and does not send it to a server. It currently shows that cry analysis is unavailable.
-
-## Native app status
-
-The repository contains an early iOS project scaffold, but it is not a release-ready native app. App Store or TestFlight distribution needs a complete Xcode project, Apple signing, a registered bundle ID, and a real-iPhone build and microphone check.
-
-## Production requirements
-
-Before presenting this as a complete baby-monitoring product, add a validated cry-analysis model and secure backend. Do not claim to diagnose illness from crying. Vaccination content must come from and be reviewed against each country's official health authority. Add authentication, privacy protections, parental consent, a privacy policy, and proper data-deletion controls before collecting audio or health-related data.
-
-Never ship API keys, payment secrets, or admin credentials in the app. Verify subscription entitlements on the server and keep prices and vaccination data under a reviewed update process.
+Android declares microphone and foreground location permissions. iOS includes microphone and when-in-use location purpose strings. The app asks only after a user chooses the relevant feature; it does not request background location.
 
 ## Development
 
-Install Flutter, run `flutter create --platforms=web .` and `flutter pub get`, then `flutter run -d chrome`. The public iPhone release is served over HTTPS through GitHub Pages.
+Install Flutter, then run `flutter pub get`. Use `flutter run -d chrome` for a browser preview or `flutter run` with a connected device for a native run.
 
-The prototype stores the child profile in browser storage, which is not encrypted. Audio is not retained.
+The native project identifiers are still Flutter template identifiers. Android/iOS signing, store submission, legal review, medical review of schedule rows, and real-device release checks are not part of this MVP branch.
+
+Profile data and vaccine checkmarks are stored locally with SharedPreferences. The app does not diagnose illness, interpret crying, or connect to a backend by default.
