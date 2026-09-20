@@ -1,15 +1,19 @@
 # Release readiness
 
-The repository now has a coherent Flutter MVP with real 10-second microphone capture, onboarding, branding, and safety messaging.
+The MVP captures up to 10 seconds of audio locally, deletes the temporary file when capture ends, and displays “Analysis is currently unavailable.” It does not send audio to a server or produce a cry interpretation.
 
-## Remaining required work before a public release
+## iPhone web app
 
-1. Run `flutter pub get` and `flutter analyze` on a machine with Flutter installed.
-2. Add Android `RECORD_AUDIO` permission and iOS `NSMicrophoneUsageDescription`.
-3. Run `flutter create .` if platform folders are not present.
-4. Connect a real HTTPS backend to `CryAnalysisClient`; the app deliberately refuses to invent a crying interpretation without one.
-5. Add authentication, server-side 7-day trial/entitlement validation, Google Play Billing, and App Store subscriptions.
-6. Source and medically review each country's vaccination schedule; do not ship placeholder schedules.
-7. Add privacy policy, parental consent, data deletion, rate limits, logging, and security review.
+The public web build is intended to open in iPhone Safari and can be added to the Home Screen. Microphone recording requires HTTPS and user permission. Profile data stays in browser storage; audio is captured for up to 10 seconds and discarded without upload.
 
-The 100 EGP amount is a launch-price fallback only; production pricing must be controlled and validated server-side and configured in both stores.
+## Native App Store/TestFlight release
+
+- The repository includes an iOS project, but the public release is a web app. Native distribution needs Apple signing, a registered bundle ID, an App Store Connect account, and a real-iPhone build and microphone check.
+- Add Android `RECORD_AUDIO` permission before making an Android build.
+
+## Future production features
+
+- A validated model and secure HTTPS backend are required before showing any cry interpretation.
+- Authentication, server-side entitlement verification, Google Play Billing, and App Store subscriptions are not part of this MVP.
+- Source and medically review each country's vaccination schedule before displaying real dates or recommendations.
+- Add a privacy policy and complete parental-consent, data-deletion, security, and store-review work before publishing.
