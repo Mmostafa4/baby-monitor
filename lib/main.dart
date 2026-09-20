@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,4 +74,4 @@ class _CryPageState extends State<CryPage>{final recorder=AudioRecorder();Timer?
 class Reassure extends StatelessWidget{const Reassure({super.key});@override Widget build(BuildContext c)=>ListView(padding:const EdgeInsets.all(16),children:const[Text('اطمئن',style:TextStyle(fontSize:28,fontWeight:FontWeight.bold)),Text('سجّل المؤشرات اليومية وشاركها مع طبيب الأطفال عند الحاجة.'),_Field('ساعات البكاء اليومي'),_Field('عدد الرضعات'),_Field('الحفاضات المبللة'),_Field('ساعات النوم'),_Field('درجة الحرارة'),_Field('ملاحظات')]);}
 class _Field extends StatelessWidget{final String label;const _Field(this.label);@override Widget build(BuildContext c)=>Card(child:TextField(decoration:InputDecoration(labelText:label,border:InputBorder.none,contentPadding:const EdgeInsets.all(16))));}
 class Vaccines extends StatelessWidget{final AppStore store;const Vaccines({super.key,required this.store});@override Widget build(BuildContext c)=>ListView(padding:const EdgeInsets.all(16),children:[Text('التطعيمات • ${store.profile!.country}',style:const TextStyle(fontSize:24,fontWeight:FontWeight.bold)),const Text('سيتم تحميل الجدول الرسمي حسب الدولة وتاريخ الميلاد بعد ربط الخادم.'),...['تطعيم حديثي الولادة — حسب البروتوكول المحلي','الجرعة التالية — يحددها تاريخ الميلاد','تذكير التطعيم — قابل للتحديث من الإدارة'].map((x)=>Card(child:ListTile(title:Text(x),leading:const Icon(Icons.vaccines),trailing:const Icon(Icons.notifications_none))))]);}
-class Emergency extends StatelessWidget{const Emergency({super.key});@override Widget build(BuildContext c)=>const ListView(padding:EdgeInsets.all(16),children:[Text('طوارئ',style:TextStyle(fontSize:28,fontWeight:FontWeight.bold,color:Colors.red)),Card(child:Padding(padding:EdgeInsets.all(16),child:Text('اذهب للطوارئ فورًا عند صعوبة التنفس، ازرقاق، تشنج، فقدان وعي، خمول شديد، نزيف، قيء أخضر أو متكرر، جفاف واضح، أو تدهور سريع.'))),Text('استخدم زر الموقع في النسخة المتصلة للعثور على مستشفى أطفال قريب.')]);}
+class Emergency extends StatelessWidget{const Emergency({super.key});@override Widget build(BuildContext c)=>ListView(padding:EdgeInsets.all(16),children:[Text('طوارئ',style:TextStyle(fontSize:28,fontWeight:FontWeight.bold,color:Colors.red)),Card(child:Padding(padding:EdgeInsets.all(16),child:Text('اذهب للطوارئ فورًا عند صعوبة التنفس، ازرقاق، تشنج، فقدان وعي، خمول شديد، نزيف، قيء أخضر أو متكرر، جفاف واضح، أو تدهور سريع.'))),Text('استخدم زر الموقع في النسخة المتصلة للعثور على مستشفى أطفال قريب.')]);}
