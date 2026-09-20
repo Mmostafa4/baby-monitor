@@ -4,12 +4,14 @@ import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'data/vaccine_schedules.dart';
+import 'models/daily_log_entry.dart';
 import 'services/cry_recording_service.dart';
 import 'services/newborn_assistant_service.dart';
 import 'widgets/baby_monitor_logo.dart';
@@ -47,7 +49,8 @@ class _BabyMonitorAppState extends State<BabyMonitorApp> {
           }
           if (snapshot.hasError) {
             return const Scaffold(
-              body: Center(child: Text('تعذر فتح بيانات التطبيق على هذا الجهاز.')),
+              body: Center(
+                  child: Text('تعذر فتح بيانات التطبيق على هذا الجهاز.')),
             );
           }
           return store.profile == null
@@ -55,7 +58,10 @@ class _BabyMonitorAppState extends State<BabyMonitorApp> {
                   store: store,
                   onSaved: () => setState(() {}),
                 )
-              : Home(store: store);
+              : Home(
+                  store: store,
+                  onLocalDataDeleted: () => setState(() {}),
+                );
         },
       ),
     );
@@ -65,6 +71,7 @@ class _BabyMonitorAppState extends State<BabyMonitorApp> {
 class AppStore {
   ChildProfile? profile;
   final Set<String> completedVaccineIds = <String>{};
+  final Map<String, DailyLogEntry> dailyLogs = <String, DailyLogEntry>{};
 
   Future<void> load() async {
     final preferences = await SharedPreferences.getInstance();
@@ -79,6 +86,26 @@ class AppStore {
     completedVaccineIds
       ..clear()
       ..addAll(preferences.getStringList('completed_vaccines') ?? const []);
+
+    dailyLogs.clear();
+    final rawDailyLogs = preferences.getString('daily_logs');
+    if (rawDailyLogs != null) {
+      try {
+        final decoded = jsonDecode(rawDailyLogs);
+        if (decoded is List) {
+          for (final value in decoded) {
+            try {
+              final entry = DailyLogEntry.fromJson(value);
+              dailyLogs[entry.dateKey] = entry;
+            } on FormatException {
+              // Ignore a single damaged entry and keep the rest of the log.
+            }
+          }
+        }
+      } on FormatException {
+        await preferences.remove('daily_logs');
+      }
+    }
   }
 
   Future<void> save(ChildProfile value) async {
@@ -104,6 +131,38 @@ class AppStore {
       'completed_vaccines',
       completedVaccineIds.toList()..sort(),
     );
+  }
+
+  Future<void> saveDailyLog(DailyLogEntry entry) async {
+    dailyLogs[entry.dateKey] = entry;
+    final preferences = await SharedPreferences.getInstance();
+    final entries = dailyLogs.values.toList()
+      ..sort((left, right) => left.date.compareTo(right.date));
+    await preferences.setString(
+      'daily_logs',
+      jsonEncode(entries.map((value) => value.toJson()).toList()),
+    );
+  }
+
+  Future<void> deleteDailyLog(String dateKey) async {
+    dailyLogs.remove(dateKey);
+    final preferences = await SharedPreferences.getInstance();
+    final entries = dailyLogs.values.toList()
+      ..sort((left, right) => left.date.compareTo(right.date));
+    await preferences.setString(
+      'daily_logs',
+      jsonEncode(entries.map((value) => value.toJson()).toList()),
+    );
+  }
+
+  Future<void> clearLocalData() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove('profile');
+    await preferences.remove('completed_vaccines');
+    await preferences.remove('daily_logs');
+    profile = null;
+    completedVaccineIds.clear();
+    dailyLogs.clear();
   }
 }
 
@@ -223,11 +282,13 @@ const List<String> languages = [
 class ConsentAndProfile extends StatefulWidget {
   final AppStore store;
   final VoidCallback onSaved;
+  final bool editMode;
 
   const ConsentAndProfile({
     super.key,
     required this.store,
     required this.onSaved,
+    this.editMode = false,
   });
 
   @override
@@ -249,6 +310,21 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
   String? locationNotice;
 
   @override
+  void initState() {
+    super.initState();
+    final existing = widget.editMode ? widget.store.profile : null;
+    if (existing == null) return;
+    baby.text = existing.baby;
+    mother.text = existing.mother;
+    father.text = existing.father;
+    country = existing.country;
+    language = existing.language;
+    dob = existing.dob;
+    locationConsent = existing.locationConsent;
+    acceptedMedicalNotice = true;
+  }
+
+  @override
   void dispose() {
     baby.dispose();
     mother.dispose();
@@ -266,7 +342,8 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
       locationNotice = null;
     });
 
-    if (locationConsent) {
+    final previousProfile = widget.store.profile;
+    if (locationConsent && previousProfile?.locationConsent != true) {
       try {
         var permission = await Geolocator.checkPermission();
         if (permission == LocationPermission.denied) {
@@ -274,17 +351,12 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
         }
         if (permission == LocationPermission.denied ||
             permission == LocationPermission.deniedForever) {
-          locationNotice = 'لم يُمنح إذن الموقع من الجهاز. يمكنك تغييره لاحقًا من صفحة الطوارئ.';
-        } else {
-          await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.low,
-              timeLimit: Duration(seconds: 5),
-            ),
-          );
+          locationNotice =
+              'لم يُمنح إذن الموقع من الجهاز. يمكنك تغييره لاحقًا من صفحة الطوارئ.';
         }
       } catch (_) {
-        locationNotice = 'احفظي الملف أولًا؛ يمكن طلب إذن الموقع من صفحة الطوارئ.';
+        locationNotice =
+            'تعذر طلب إذن الموقع الآن. يمكنك تغييره لاحقًا من صفحة الطوارئ.';
       }
     }
 
@@ -402,7 +474,8 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
                     value: locationConsent,
                     onChanged: (value) =>
                         setState(() => locationConsent = value ?? false),
-                    title: const Text('أوافق على استخدام موقعي عند طلب مستشفى قريب'),
+                    title: const Text(
+                        'أوافق على استخدام موقعي عند طلب مستشفى قريب'),
                     subtitle: const Text(
                       'سيطلب الجهاز إذن GPS الآن. لن يحفظ التطبيق إحداثياتك أو يرسلها إلى خادمه؛ تُستخدم فقط لفتح الخرائط عند طلبك.',
                     ),
@@ -412,7 +485,13 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
                 const SizedBox(height: 8),
                 FilledButton(
                   onPressed: saving ? null : _saveProfile,
-                  child: Text(saving ? 'جارٍ الحفظ...' : 'ابدأ'),
+                  child: Text(
+                    saving
+                        ? 'جارٍ الحفظ...'
+                        : widget.editMode
+                            ? 'حفظ التغييرات'
+                            : 'ابدأ',
+                  ),
                 ),
               ],
             ),
@@ -427,9 +506,8 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
-        validator: (value) => value == null || value.trim().isEmpty
-            ? 'هذا الحقل مطلوب'
-            : null,
+        validator: (value) =>
+            value == null || value.trim().isEmpty ? 'هذا الحقل مطلوب' : null,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
@@ -441,8 +519,13 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
 
 class Home extends StatefulWidget {
   final AppStore store;
+  final VoidCallback onLocalDataDeleted;
 
-  const Home({super.key, required this.store});
+  const Home({
+    super.key,
+    required this.store,
+    required this.onLocalDataDeleted,
+  });
 
   @override
   State<Home> createState() => _HomeState();
@@ -452,12 +535,35 @@ class _HomeState extends State<Home> {
   int tab = 0;
   final GlobalKey<_CryPageState> cryPageKey = GlobalKey<_CryPageState>();
 
+  Future<void> _openSettings() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (settingsContext) => AppSettingsScreen(
+          store: widget.store,
+          onEditProfile: () async {
+            await Navigator.of(settingsContext).push<void>(
+              MaterialPageRoute<void>(
+                builder: (profileContext) => ConsentAndProfile(
+                  store: widget.store,
+                  editMode: true,
+                  onSaved: () => Navigator.of(profileContext).pop(),
+                ),
+              ),
+            );
+          },
+          onLocalDataDeleted: widget.onLocalDataDeleted,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = widget.store.profile!;
     final pages = [
       CryPage(key: cryPageKey),
-      const Reassure(),
+      Reassure(store: widget.store),
       Vaccines(store: widget.store),
       Emergency(store: widget.store),
       const NewbornAssistant(),
@@ -472,6 +578,13 @@ class _HomeState extends State<Home> {
             padding: EdgeInsets.all(7),
             child: BabyMonitorLogo(size: 42),
           ),
+          actions: [
+            IconButton(
+              onPressed: _openSettings,
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'الإعدادات والخصوصية',
+            ),
+          ],
         ),
         body: IndexedStack(index: tab, children: pages),
         bottomNavigationBar: NavigationBar(
@@ -485,9 +598,155 @@ class _HomeState extends State<Home> {
           destinations: const [
             NavigationDestination(icon: Icon(Icons.mic), label: 'الصوت'),
             NavigationDestination(icon: Icon(Icons.favorite), label: 'اطمئن'),
-            NavigationDestination(icon: Icon(Icons.vaccines), label: 'التطعيمات'),
-            NavigationDestination(icon: Icon(Icons.warning_amber), label: 'الطوارئ'),
-            NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'اسألي'),
+            NavigationDestination(
+                icon: Icon(Icons.vaccines), label: 'التطعيمات'),
+            NavigationDestination(
+                icon: Icon(Icons.warning_amber), label: 'الطوارئ'),
+            NavigationDestination(
+                icon: Icon(Icons.chat_bubble_outline), label: 'اسألي'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AppSettingsScreen extends StatefulWidget {
+  final AppStore store;
+  final Future<void> Function() onEditProfile;
+  final VoidCallback onLocalDataDeleted;
+
+  const AppSettingsScreen({
+    super.key,
+    required this.store,
+    required this.onEditProfile,
+    required this.onLocalDataDeleted,
+  });
+
+  @override
+  State<AppSettingsScreen> createState() => _AppSettingsScreenState();
+}
+
+class _AppSettingsScreenState extends State<AppSettingsScreen> {
+  bool editingProfile = false;
+  bool deletingData = false;
+
+  Future<void> _editProfile() async {
+    if (editingProfile) return;
+    setState(() => editingProfile = true);
+    try {
+      await widget.onEditProfile();
+    } finally {
+      if (mounted) setState(() => editingProfile = false);
+    }
+  }
+
+  Future<void> _deleteLocalData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('حذف كل البيانات المحلية؟'),
+        content: const Text(
+          'سيُحذف ملف الطفل وسجلات الرعاية وعلامات التطعيم المحفوظة على هذا الجهاز. لا يمكن التراجع عن الحذف.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('حذف البيانات'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || deletingData) return;
+
+    setState(() => deletingData = true);
+    try {
+      await widget.store.clearLocalData();
+      if (!mounted) return;
+      widget.onLocalDataDeleted();
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (mounted) setState(() => deletingData = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر حذف البيانات. حاولي مرة أخرى.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = widget.store.profile;
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('الإعدادات والخصوصية')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.child_care),
+                title: const Text('ملف الطفل'),
+                subtitle: Text(
+                  profile == null
+                      ? 'لا يوجد ملف محفوظ'
+                      : profile.baby + ' • ' + profile.country,
+                ),
+                trailing: editingProfile
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.edit_outlined),
+                onTap: editingProfile ? null : _editProfile,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'البيانات والخصوصية',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ملف الطفل وسجلات اليوم وعلامات التطعيم تُحفظ على هذا الجهاز.',
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'التسجيل الصوتي مؤقت داخل الذاكرة ولا يُرفع. تحليل البكاء والمساعد الذكي غير متصلين في هذه النسخة.',
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'يمكنك حذف كل بيانات التطبيق المحلية من هنا. حذف التطبيق من الجهاز يزيل البيانات المحلية أيضًا.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: deletingData ? null : _deleteLocalData,
+              icon: deletingData
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete_forever_outlined),
+              label: const Text('حذف كل البيانات المحلية'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+            ),
           ],
         ),
       ),
@@ -558,7 +817,8 @@ class _CryPageState extends State<CryPage> {
       await _cancelQuietly();
       if (mounted) {
         setState(() {
-          message = 'تعذر بدء التسجيل. اسمحي بالميكروفون في Safari ثم حاولي مجددًا.';
+          message =
+              'تعذر بدء التسجيل. اسمحي بالميكروفون في Safari ثم حاولي مجددًا.';
         });
       }
     } finally {
@@ -586,7 +846,8 @@ class _CryPageState extends State<CryPage> {
                 ' كيلوبايت محليًا. يمكنك الاستماع ثم حذف التسجيل؛ لا يُرفع الصوت ولا يُحلل البكاء بعد.';
           } else {
             audioPreview = null;
-            message = 'لم يصل صوت إلى المسجل. تحققي من إذن الميكروفون، ومن أن الصفحة مفتوحة عبر HTTPS في Safari، ثم أعيدي المحاولة.';
+            message =
+                'لم يصل صوت إلى المسجل. تحققي من إذن الميكروفون، ومن أن الصفحة مفتوحة عبر HTTPS في Safari، ثم أعيدي المحاولة.';
           }
         });
       }
@@ -606,7 +867,8 @@ class _CryPageState extends State<CryPage> {
           recording = false;
           busy = false;
           seconds = 0;
-          message = 'تعذر إكمال التسجيل. تحققي من إذن الميكروفون وحاولي مرة أخرى.';
+          message =
+              'تعذر إكمال التسجيل. تحققي من إذن الميكروفون وحاولي مرة أخرى.';
         });
       }
     }
@@ -661,7 +923,8 @@ class _CryPageState extends State<CryPage> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          message = 'تعذر تشغيل التسجيل على هذا المتصفح. يمكنك حذفه وإعادة المحاولة.';
+          message =
+              'تعذر تشغيل التسجيل على هذا المتصفح. يمكنك حذفه وإعادة المحاولة.';
           playing = false;
         });
       }
@@ -700,7 +963,8 @@ class _CryPageState extends State<CryPage> {
         setState(() {
           recording = false;
           playing = false;
-          message = 'تعذر حذف الصوت عند مغادرة الصفحة. عودي إلى الصوت واستخدمي حذف التسجيل.';
+          message =
+              'تعذر حذف الصوت عند مغادرة الصفحة. عودي إلى الصوت واستخدمي حذف التسجيل.';
         });
       }
     }
@@ -749,8 +1013,7 @@ class _CryPageState extends State<CryPage> {
           ),
         ),
         const SizedBox(height: 12),
-        if (recording)
-          LinearProgressIndicator(value: seconds / 10),
+        if (recording) LinearProgressIndicator(value: seconds / 10),
         const SizedBox(height: 10),
         const Card(
           child: Padding(
@@ -809,41 +1072,435 @@ class _CryPageState extends State<CryPage> {
   }
 }
 
-class Reassure extends StatelessWidget {
-  const Reassure({super.key});
+class Reassure extends StatefulWidget {
+  final AppStore store;
+
+  const Reassure({super.key, required this.store});
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: const [
-        Text('اطمئن', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-        Text('سجّلي المؤشرات اليومية وشاركيها مع طبيب الأطفال عند الحاجة.'),
-        _Field('ساعات البكاء اليومي'),
-        _Field('عدد الرضعات'),
-        _Field('الحفاضات المبللة'),
-        _Field('ساعات النوم'),
-        _Field('درجة الحرارة'),
-        _Field('ملاحظات'),
-      ],
-    );
-  }
+  State<Reassure> createState() => _ReassureState();
 }
 
-class _Field extends StatelessWidget {
-  final String label;
+class _ReassureState extends State<Reassure> {
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final TextEditingController cryingHours = TextEditingController();
+  final TextEditingController feedingCount = TextEditingController();
+  final TextEditingController wetDiapers = TextEditingController();
+  final TextEditingController sleepHours = TextEditingController();
+  final TextEditingController temperature = TextEditingController();
+  final TextEditingController notes = TextEditingController();
 
-  const _Field(this.label);
+  late DateTime selectedDate;
+  bool saving = false;
+  String? message;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedDate = dateOnly(DateTime.now());
+    _populateForm();
+  }
+
+  @override
+  void dispose() {
+    cryingHours.dispose();
+    feedingCount.dispose();
+    wetDiapers.dispose();
+    sleepHours.dispose();
+    temperature.dispose();
+    notes.dispose();
+    super.dispose();
+  }
+
+  void _populateForm() {
+    final entry = widget.store.dailyLogs[DailyLogEntry.keyFor(selectedDate)];
+    cryingHours.text = entry?.cryingHours?.toString() ?? '';
+    feedingCount.text = entry?.feedingCount?.toString() ?? '';
+    wetDiapers.text = entry?.wetDiapers?.toString() ?? '';
+    sleepHours.text = entry?.sleepHours?.toString() ?? '';
+    temperature.text = entry?.temperatureCelsius?.toString() ?? '';
+    notes.text = entry?.notes ?? '';
+  }
+
+  Future<void> _chooseDate() async {
+    final profile = widget.store.profile!;
+    final today = dateOnly(DateTime.now());
+    final chosen = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: dateOnly(profile.dob),
+      lastDate: today,
+    );
+    if (chosen == null || !mounted) return;
+    setState(() {
+      selectedDate = dateOnly(chosen);
+      message = null;
+      _populateForm();
+    });
+  }
+
+  void _moveDate(int days) {
+    final profile = widget.store.profile!;
+    final candidate = selectedDate.add(Duration(days: days));
+    if (candidate.isBefore(dateOnly(profile.dob)) ||
+        candidate.isAfter(dateOnly(DateTime.now()))) {
+      return;
+    }
+    setState(() {
+      selectedDate = candidate;
+      message = null;
+      _populateForm();
+    });
+  }
+
+  String _normalizeNumber(String value) {
+    const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+    var normalized = value.trim();
+    for (var index = 0; index < 10; index++) {
+      normalized = normalized
+          .replaceAll(arabicDigits[index], index.toString())
+          .replaceAll(persianDigits[index], index.toString());
+    }
+    return normalized.replaceAll('٫', '.').replaceAll(',', '.');
+  }
+
+  String? _validateCount(String? value, int maxValue) {
+    if (value == null || value.trim().isEmpty) return null;
+    final parsed = int.tryParse(_normalizeNumber(value));
+    if (parsed == null || parsed < 0 || parsed > maxValue) {
+      return 'أدخلي عددًا صحيحًا من 0 إلى $maxValue';
+    }
+    return null;
+  }
+
+  String? _validateTemperature(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final parsed = double.tryParse(_normalizeNumber(value));
+    if (parsed == null || parsed < 30 || parsed > 45) {
+      return 'أدخلي درجة حرارة بين 30 و45°م';
+    }
+    return null;
+  }
+
+  int? _readCount(TextEditingController controller) {
+    final value = _normalizeNumber(controller.text);
+    return value.isEmpty ? null : int.tryParse(value);
+  }
+
+  double? _readTemperature() {
+    final value = _normalizeNumber(temperature.text);
+    return value.isEmpty ? null : double.tryParse(value);
+  }
+
+  DailyLogEntry _entryFromForm() => DailyLogEntry(
+        date: selectedDate,
+        cryingHours: _readCount(cryingHours),
+        feedingCount: _readCount(feedingCount),
+        wetDiapers: _readCount(wetDiapers),
+        sleepHours: _readCount(sleepHours),
+        temperatureCelsius: _readTemperature(),
+        notes: notes.text.trim(),
+      );
+
+  bool _hasValues() =>
+      cryingHours.text.trim().isNotEmpty ||
+      feedingCount.text.trim().isNotEmpty ||
+      wetDiapers.text.trim().isNotEmpty ||
+      sleepHours.text.trim().isNotEmpty ||
+      temperature.text.trim().isNotEmpty ||
+      notes.text.trim().isNotEmpty;
+
+  Future<void> _saveEntry() async {
+    if (saving || !formKey.currentState!.validate()) return;
+    if (!_hasValues()) {
+      setState(() => message = 'أضيفي قيمة واحدة على الأقل قبل الحفظ.');
+      return;
+    }
+
+    setState(() {
+      saving = true;
+      message = null;
+    });
+    try {
+      await widget.store.saveDailyLog(_entryFromForm());
+      if (mounted) setState(() => message = 'تم حفظ سجل اليوم على هذا الجهاز.');
+    } catch (_) {
+      if (mounted) setState(() => message = 'تعذر حفظ السجل. حاولي مرة أخرى.');
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  Future<void> _copySummary() async {
+    if (!formKey.currentState!.validate()) return;
+    if (!_hasValues()) {
+      setState(() => message = 'أضيفي قيمة واحدة على الأقل لنسخ الملخص.');
+      return;
+    }
+    final entry = _entryFromForm();
+    final profile = widget.store.profile!;
+    final lines = <String>[
+      'Baby Monitor • ' + profile.baby,
+      'التاريخ: ' + DateFormat('yyyy-MM-dd').format(entry.date),
+      if (entry.cryingHours != null)
+        'ساعات البكاء: ' + entry.cryingHours.toString(),
+      if (entry.feedingCount != null)
+        'عدد الرضعات: ' + entry.feedingCount.toString(),
+      if (entry.wetDiapers != null)
+        'الحفاضات المبللة: ' + entry.wetDiapers.toString(),
+      if (entry.sleepHours != null)
+        'ساعات النوم: ' + entry.sleepHours.toString(),
+      if (entry.temperatureCelsius != null)
+        'درجة الحرارة: ' + entry.temperatureCelsius.toString() + '°م',
+      if (entry.notes.trim().isNotEmpty) 'ملاحظات: ' + entry.notes.trim(),
+      'سجل لمتابعة الرعاية، وليس تشخيصًا طبيًا.',
+    ];
+    try {
+      await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+      if (mounted) {
+        setState(() => message = 'نُسخ الملخص. راجعيه قبل مشاركته.');
+      }
+    } catch (_) {
+      if (mounted) setState(() => message = 'تعذر نسخ الملخص.');
+    }
+  }
+
+  Future<void> _deleteEntry(DailyLogEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('حذف سجل اليوم؟'),
+        content: Text(
+          'سيُحذف سجل ' +
+              DateFormat('yyyy-MM-dd').format(entry.date) +
+              ' من هذا الجهاز.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await widget.store.deleteDailyLog(entry.dateKey);
+      if (!mounted) return;
+      setState(() {
+        if (entry.dateKey == DailyLogEntry.keyFor(selectedDate)) {
+          _populateForm();
+        }
+        message = 'تم حذف السجل.';
+      });
+    } catch (_) {
+      if (mounted) setState(() => message = 'تعذر حذف السجل. حاولي مرة أخرى.');
+    }
+  }
+
+  Widget _numberField({
+    required TextEditingController controller,
+    required String label,
+    required String? Function(String?) validator,
+    bool decimal = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
+  String _entrySummary(DailyLogEntry entry) {
+    final parts = <String>[];
+    if (entry.cryingHours != null) {
+      parts.add('بكاء: ' + entry.cryingHours.toString() + ' س');
+    }
+    if (entry.feedingCount != null) {
+      parts.add('رضعات: ' + entry.feedingCount.toString());
+    }
+    if (entry.wetDiapers != null) {
+      parts.add('حفاضات: ' + entry.wetDiapers.toString());
+    }
+    if (entry.sleepHours != null) {
+      parts.add('نوم: ' + entry.sleepHours.toString() + ' س');
+    }
+    if (entry.temperatureCelsius != null) {
+      parts.add('حرارة: ' + entry.temperatureCelsius.toString() + '°م');
+    }
+    if (parts.isEmpty && entry.notes.trim().isEmpty) return 'ملاحظات فقط';
+    return parts.join(' • ');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: TextField(
-        decoration: InputDecoration(
-          labelText: label,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(16),
-        ),
+    final profile = widget.store.profile!;
+    final today = dateOnly(DateTime.now());
+    final isToday =
+        DailyLogEntry.keyFor(selectedDate) == DailyLogEntry.keyFor(today);
+    final history = widget.store.dailyLogs.values.toList()
+      ..sort((left, right) => right.date.compareTo(left.date));
+
+    return Form(
+      key: formKey,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'اطمئن',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
+          const Text(
+            'سجّلي مؤشرات الرعاية اليومية وشاركيها مع طبيب الأطفال عند الحاجة. تبقى السجلات على هذا الجهاز.',
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: 'اليوم السابق',
+                  onPressed: selectedDate.isAfter(dateOnly(profile.dob))
+                      ? () => _moveDate(-1)
+                      : null,
+                  icon: const Icon(Icons.chevron_right),
+                ),
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: _chooseDate,
+                    icon: const Icon(Icons.calendar_month),
+                    label: Text(
+                      (isToday ? 'اليوم • ' : '') +
+                          DateFormat('yyyy-MM-dd').format(selectedDate),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'اليوم التالي',
+                  onPressed: !isToday && selectedDate.isBefore(today)
+                      ? () => _moveDate(1)
+                      : null,
+                  icon: const Icon(Icons.chevron_left),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          _numberField(
+            controller: cryingHours,
+            label: 'ساعات البكاء (0–24)',
+            validator: (value) => _validateCount(value, 24),
+          ),
+          _numberField(
+            controller: feedingCount,
+            label: 'عدد الرضعات',
+            validator: (value) => _validateCount(value, 40),
+          ),
+          _numberField(
+            controller: wetDiapers,
+            label: 'عدد الحفاضات المبللة',
+            validator: (value) => _validateCount(value, 40),
+          ),
+          _numberField(
+            controller: sleepHours,
+            label: 'ساعات النوم (0–24)',
+            validator: (value) => _validateCount(value, 24),
+          ),
+          _numberField(
+            controller: temperature,
+            label: 'درجة الحرارة (°م، اختياري)',
+            validator: _validateTemperature,
+            decimal: true,
+          ),
+          TextFormField(
+            controller: notes,
+            minLines: 2,
+            maxLines: 5,
+            maxLength: 1000,
+            decoration: const InputDecoration(
+              labelText: 'ملاحظات',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            onPressed: saving ? null : _saveEntry,
+            icon: saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: Text(saving ? 'جارٍ الحفظ...' : 'حفظ سجل اليوم'),
+          ),
+          const SizedBox(height: 6),
+          OutlinedButton.icon(
+            onPressed: _copySummary,
+            icon: const Icon(Icons.copy_outlined),
+            label: const Text('نسخ ملخص اليوم لمشاركته'),
+          ),
+          if (message != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              message!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: message!.startsWith('تم')
+                    ? Colors.green.shade800
+                    : Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
+          const SizedBox(height: 18),
+          Text(
+            'السجلات المحفوظة (' + history.length.toString() + ')',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          if (history.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('ستظهر هنا الأيام التي تحفظين سجلًا لها.'),
+              ),
+            ),
+          for (final entry in history.take(30))
+            Card(
+              child: ListTile(
+                onTap: () {
+                  setState(() {
+                    selectedDate = entry.date;
+                    message = null;
+                    _populateForm();
+                  });
+                },
+                title: Text(DateFormat('yyyy-MM-dd').format(entry.date)),
+                subtitle: Text(
+                  entry.notes.trim().isEmpty
+                      ? _entrySummary(entry)
+                      : _entrySummary(entry) + ' • ' + entry.notes.trim(),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: IconButton(
+                  tooltip: 'حذف السجل',
+                  onPressed: () => _deleteEntry(entry),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -867,10 +1524,13 @@ class _VaccinesState extends State<Vaccines> {
   @override
   Widget build(BuildContext context) {
     final profile = widget.store.profile!;
-    final doses = vaccineSchedules[profile.country] ?? const <VaccineScheduleDose>[];
+    final doses =
+        vaccineSchedules[profile.country] ?? const <VaccineScheduleDose>[];
     final grouped = <int, List<VaccineScheduleDose>>{};
     for (final dose in doses) {
-      grouped.putIfAbsent(dose.ageMonths, () => <VaccineScheduleDose>[]).add(dose);
+      grouped
+          .putIfAbsent(dose.ageMonths, () => <VaccineScheduleDose>[])
+          .add(dose);
     }
 
     return ListView(
@@ -969,18 +1629,18 @@ class _VaccinesState extends State<Vaccines> {
   ) {
     final title = doses.first.ageLabelOverride ??
         (month == 0
-        ? 'عند الولادة'
-        : month == 1
-            ? 'عمر شهر'
-            : month == 2
-                ? 'عمر شهرين'
-                : month == 12
-                    ? 'عمر سنة'
-                    : month == 18
-                        ? 'عمر سنة ونصف'
-                        : month == 24
-                            ? 'عمر سنتين'
-                            : 'عمر ' + month.toString() + ' شهرًا');
+            ? 'عند الولادة'
+            : month == 1
+                ? 'عمر شهر'
+                : month == 2
+                    ? 'عمر شهرين'
+                    : month == 12
+                        ? 'عمر سنة'
+                        : month == 18
+                            ? 'عمر سنة ونصف'
+                            : month == 24
+                                ? 'عمر سنتين'
+                                : 'عمر ' + month.toString() + ' شهرًا');
     final firstDueDate = vaccineDueDate(profile.dob, doses.first);
 
     return Card(
@@ -1001,11 +1661,13 @@ class _VaccinesState extends State<Vaccines> {
                   dose.id;
               final done = widget.store.completedVaccineIds.contains(id);
               final dueDate = vaccineDueDate(profile.dob, dose);
-              final overdue = dateOnly(dueDate).isBefore(dateOnly(DateTime.now()));
+              final overdue =
+                  dateOnly(dueDate).isBefore(dateOnly(DateTime.now()));
               final name = vaccineArabicNames[dose.code] ?? dose.code;
-              final conditionalNote = dose.conditional && dose.timingNote == null
-                  ? 'قد يعتمد على الموسم أو الحالة الصحية • '
-                  : '';
+              final conditionalNote =
+                  dose.conditional && dose.timingNote == null
+                      ? 'قد يعتمد على الموسم أو الحالة الصحية • '
+                      : '';
 
               return CheckboxListTile(
                 value: done,
@@ -1017,7 +1679,9 @@ class _VaccinesState extends State<Vaccines> {
                 title: Text(name),
                 subtitle: Text(
                   conditionalNote +
-                      (dose.timingNote == null ? '' : dose.timingNote! + ' • ') +
+                      (dose.timingNote == null
+                          ? ''
+                          : dose.timingNote! + ' • ') +
                       (done
                           ? 'سُجّلت كجرعة أُعطيت'
                           : overdue
@@ -1136,18 +1800,21 @@ class _EmergencyState extends State<Emergency> {
             permission == LocationPermission.deniedForever) {
           setState(() {
             locationResolved = false;
-            locationStatus = 'موافقة التطبيق مسجلة، لكن إذن الموقع من الجهاز غير ممنوح.';
+            locationStatus =
+                'موافقة التطبيق مسجلة، لكن إذن الموقع من الجهاز غير ممنوح.';
           });
         } else {
           setState(() {
             locationResolved = false;
-            locationStatus = 'الإذن متاح. اضغطي تحديد مكاني لفتح المستشفى القريب.';
+            locationStatus =
+                'الإذن متاح. اضغطي تحديد مكاني لفتح المستشفى القريب.';
           });
         }
       } catch (_) {
         setState(() {
           locationResolved = false;
-          locationStatus = 'تعذّر طلب إذن الجهاز. افتحي إعدادات Safari للموقع ثم حاولي مجددًا.';
+          locationStatus =
+              'تعذّر طلب إذن الجهاز. افتحي إعدادات Safari للموقع ثم حاولي مجددًا.';
         });
       }
     } else {
@@ -1184,7 +1851,8 @@ class _EmergencyState extends State<Emergency> {
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         setState(() {
-          locationStatus = 'إذن GPS غير متاح. اسمحي بالموقع لهذا الموقع من إعدادات Safari.';
+          locationStatus =
+              'إذن GPS غير متاح. اسمحي بالموقع لهذا الموقع من إعدادات Safari.';
         });
         return;
       }
@@ -1192,7 +1860,8 @@ class _EmergencyState extends State<Emergency> {
       final enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
         setState(() {
-          locationStatus = 'خدمة الموقع متوقفة في الجهاز. فعّليها ثم حاولي مرة أخرى.';
+          locationStatus =
+              'خدمة الموقع متوقفة في الجهاز. فعّليها ثم حاولي مرة أخرى.';
         });
         return;
       }
@@ -1220,14 +1889,16 @@ class _EmergencyState extends State<Emergency> {
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!opened && mounted) {
         setState(() {
-          locationStatus = 'تم تحديد الموقع ✓، لكن تعذر فتح الخرائط على هذا الجهاز.';
+          locationStatus =
+              'تم تحديد الموقع ✓، لكن تعذر فتح الخرائط على هذا الجهاز.';
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
           locationResolved = false;
-          locationStatus = 'تعذر تحديد الموقع. تحققي من إذن GPS واتصال الجهاز ثم حاولي مجددًا.';
+          locationStatus =
+              'تعذر تحديد الموقع. تحققي من إذن GPS واتصال الجهاز ثم حاولي مجددًا.';
         });
       }
     } finally {
@@ -1284,7 +1955,8 @@ class _EmergencyState extends State<Emergency> {
                       child: Text(
                         locationStatus,
                         style: TextStyle(
-                          color: locationResolved ? Colors.green.shade800 : null,
+                          color:
+                              locationResolved ? Colors.green.shade800 : null,
                         ),
                       ),
                     ),
@@ -1311,7 +1983,9 @@ class _EmergencyState extends State<Emergency> {
                           )
                         : const Icon(Icons.map_outlined),
                     label: Text(
-                      locating ? 'جارٍ تحديد الموقع...' : 'ابحث عن مستشفى أطفال قريب',
+                      locating
+                          ? 'جارٍ تحديد الموقع...'
+                          : 'ابحث عن مستشفى أطفال قريب',
                     ),
                   ),
                 ),
@@ -1364,7 +2038,8 @@ class _EmergencyState extends State<Emergency> {
             'https://www.who.int/europe/news-room/fact-sheets/item/newborn-health',
           ),
           icon: const Icon(Icons.open_in_new),
-          label: const Text('منظمة الصحة العالمية: علامات الخطر لدى حديثي الولادة'),
+          label: const Text(
+              'منظمة الصحة العالمية: علامات الخطر لدى حديثي الولادة'),
         ),
         TextButton.icon(
           onPressed: () => _openSource(
@@ -1426,7 +2101,8 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
 
     if (!service.isConfigured) {
       setState(() {
-        error = 'المساعد الذكي غير متصل في هذه النسخة؛ لم يُرسل سؤالك. يحتاج التطبيق إلى خدمة آمنة على الخادم قبل تفعيله.';
+        error =
+            'المساعد الذكي غير متصل في هذه النسخة؛ لم يُرسل سؤالك. يحتاج التطبيق إلى خدمة آمنة على الخادم قبل تفعيله.';
       });
       return;
     }
@@ -1447,7 +2123,8 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
       if (mounted) setState(() => error = exception.message);
     } catch (_) {
       if (mounted) {
-        setState(() => error = 'تعذر الاتصال بالمساعد. تحققي من الإنترنت وحاولي لاحقًا.');
+        setState(() =>
+            error = 'تعذر الاتصال بالمساعد. تحققي من الإنترنت وحاولي لاحقًا.');
       }
     } finally {
       if (mounted) setState(() => sending = false);
@@ -1514,7 +2191,9 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
                     decoration: BoxDecoration(
                       color: message.fromUser
                           ? Theme.of(context).colorScheme.secondaryContainer
-                          : Theme.of(context).colorScheme.surfaceContainerHighest,
+                          : Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(message.text),

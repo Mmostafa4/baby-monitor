@@ -7,6 +7,7 @@ The current published iPhone Safari version is at [mmostafa4.github.io/baby-moni
 ## MVP features
 
 - Local child profile and medical-notice consent.
+- Editable child profile, a daily care log with date navigation and local history, copyable summaries for a caregiver or clinician, and a control to erase local data.
 - Optional GPS consent during setup. Location is requested only after consent, and the Emergency screen shows a check when a location fix succeeds before opening Apple Maps. Coordinates are not saved.
 - Up to 10 seconds of microphone capture, an in-memory audio preview, and a delete action. The app does not save or upload audio.
 - Cry analysis remains unavailable and the screen says **Analysis is currently unavailable.**
@@ -20,8 +21,8 @@ Android declares microphone and foreground location permissions. iOS includes mi
 
 ## Development
 
-Install Flutter. For an Android/iOS run from a fresh checkout, first follow [the platform scaffolding note](docs/platform-scaffolding.md) to generate the SDK-specific toolchain files. Then run `flutter pub get`. Use `flutter run -d chrome` for a browser preview or `flutter run` with a connected device for a native run.
+Install Flutter and run `flutter pub get` from the project root. On macOS, run `pod install` from `ios/` before building for iOS. Use `flutter run -d chrome` for a browser preview or `flutter run` with a connected device for a native run. See [the platform setup note](docs/platform-scaffolding.md) if regenerating native files after a Flutter SDK upgrade.
 
 The native project identifiers are still Flutter template identifiers. Android/iOS signing, store submission, legal review, medical review of schedule rows, and real-device release checks are not part of this MVP branch.
 
-Profile data and vaccine checkmarks are stored locally with SharedPreferences. The app does not diagnose illness, interpret crying, or connect to a backend by default.
+Profile data, daily care logs, and vaccine checkmarks are stored locally with SharedPreferences. The app does not diagnose illness, interpret crying, or connect to a backend by default.
