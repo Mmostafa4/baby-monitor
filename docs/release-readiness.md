@@ -1,19 +1,26 @@
 # Release readiness
 
-The MVP captures up to 10 seconds of audio locally, deletes the temporary file when capture ends, and displays “Analysis is currently unavailable.” It does not send audio to a server or produce a cry interpretation.
+This MVP captures up to 10 seconds of audio as a temporary stream, discards chunks immediately, and displays “Analysis is currently unavailable.” It does not store audio, upload audio, or interpret crying.
 
-## iPhone web app
+## iPhone Safari web app
 
-The public web build is intended to open in iPhone Safari and can be added to the Home Screen. Microphone recording requires HTTPS and user permission. Profile data stays in browser storage; audio is captured for up to 10 seconds and discarded without upload.
+- Served over HTTPS so Safari can request microphone permission.
+- Can be added to the Home Screen from Safari using **Share → Add to Home Screen**.
+- Profile data stays in browser storage and is not encrypted.
+- The web app is the current public release path; the recording stream is discarded locally.
 
-## Native App Store/TestFlight release
+## Native App Store/TestFlight app
 
-- The repository includes an iOS project, but the public release is a web app. Native distribution needs Apple signing, a registered bundle ID, an App Store Connect account, and a real-iPhone build and microphone check.
-- Add Android `RECORD_AUDIO` permission before making an Android build.
+The repository's iOS folder is an early scaffold, not a ready-to-ship native app. Before native distribution:
+
+- Complete and validate the Xcode project and Flutter iOS build.
+- Set the production bundle identifier and Apple signing.
+- Build and test microphone capture on a physical iPhone.
+- Complete App Store Connect setup and meet Apple's review requirements.
 
 ## Future production features
 
-- A validated model and secure HTTPS backend are required before showing any cry interpretation.
-- Authentication, server-side entitlement verification, Google Play Billing, and App Store subscriptions are not part of this MVP.
-- Source and medically review each country's vaccination schedule before displaying real dates or recommendations.
-- Add a privacy policy and complete parental-consent, data-deletion, security, and store-review work before publishing.
+- A validated model and secure HTTPS backend are required before showing a cry interpretation.
+- Authentication, server-side entitlement checks, and in-app purchases are not part of this MVP.
+- Source and medically review each country's vaccination schedule before displaying dates or recommendations.
+- Add a privacy policy and complete parental-consent, data-deletion, and security work before collecting audio or health-related data.
