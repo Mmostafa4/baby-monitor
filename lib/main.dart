@@ -818,7 +818,7 @@ class _CryPageState extends State<CryPage> {
       if (mounted) {
         setState(() {
           message =
-              'تعذر بدء التسجيل. اسمحي بالميكروفون في Safari ثم حاولي مجددًا.';
+              'تعذر بدء التسجيل. اسمحي بالميكروفون من إعدادات الجهاز أو المتصفح ثم حاولي مجددًا.';
         });
       }
     } finally {
@@ -847,7 +847,7 @@ class _CryPageState extends State<CryPage> {
           } else {
             audioPreview = null;
             message =
-                'لم يصل صوت إلى المسجل. تحققي من إذن الميكروفون، ومن أن الصفحة مفتوحة عبر HTTPS في Safari، ثم أعيدي المحاولة.';
+                'لم يصل صوت إلى المسجل. تحققي من إذن الميكروفون. في نسخة الويب افتحي التطبيق عبر HTTPS ثم أعيدي المحاولة.';
           }
         });
       }
@@ -1814,7 +1814,7 @@ class _EmergencyState extends State<Emergency> {
         setState(() {
           locationResolved = false;
           locationStatus =
-              'تعذّر طلب إذن الجهاز. افتحي إعدادات Safari للموقع ثم حاولي مجددًا.';
+              'تعذّر طلب إذن الجهاز. افتحي إعدادات الجهاز أو المتصفح للموقع ثم حاولي مجددًا.';
         });
       }
     } else {
@@ -1852,7 +1852,7 @@ class _EmergencyState extends State<Emergency> {
           permission == LocationPermission.deniedForever) {
         setState(() {
           locationStatus =
-              'إذن GPS غير متاح. اسمحي بالموقع لهذا الموقع من إعدادات Safari.';
+              'إذن GPS غير متاح. اسمحي بالموقع من إعدادات الجهاز أو المتصفح.';
         });
         return;
       }
@@ -1882,9 +1882,9 @@ class _EmergencyState extends State<Emergency> {
       final coordinates =
           position.latitude.toString() + ',' + position.longitude.toString();
       final uri = Uri.https(
-        'maps.apple.com',
-        '/',
-        {'q': 'مستشفى أطفال', 'll': coordinates},
+        'www.google.com',
+        '/maps/search/',
+        {'api': '1', 'query': 'مستشفى أطفال near ' + coordinates},
       );
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!opened && mounted) {

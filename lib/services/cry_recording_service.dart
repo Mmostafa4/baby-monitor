@@ -21,7 +21,7 @@ class CryRecordingService {
 
     if (!await _recorder.hasPermission()) {
       throw const CryRecordingException(
-        'لم يُمنح إذن الميكروفون. اسمحي به من إعدادات Safari ثم أعيدي المحاولة.',
+        'لم يُمنح إذن الميكروفون. اسمحي به من إعدادات الجهاز أو المتصفح ثم أعيدي المحاولة.',
       );
     }
 
