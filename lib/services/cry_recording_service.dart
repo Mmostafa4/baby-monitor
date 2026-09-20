@@ -75,7 +75,11 @@ class CryRecordingService {
       final pcm = _audioData.takeBytes();
       _audioData = BytesBuilder(copy: false);
       if (pcm.isEmpty) return null;
-      return _wavFromPcm16(pcm);
+      try {
+        return _wavFromPcm16(pcm);
+      } finally {
+        pcm.fillRange(0, pcm.length, 0);
+      }
     } catch (_) {
       _hasPendingCleanup = true;
       throw const CryRecordingException(
@@ -124,7 +128,8 @@ class CryRecordingService {
       await _recorder.cancel();
       await _subscription?.cancel();
       _subscription = null;
-      _audioData.takeBytes();
+      final discardedAudio = _audioData.takeBytes();
+      discardedAudio.fillRange(0, discardedAudio.length, 0);
       _hasPendingCleanup = false;
     } catch (_) {
       _hasPendingCleanup = true;

@@ -761,7 +761,7 @@ class CryPage extends StatefulWidget {
   State<CryPage> createState() => _CryPageState();
 }
 
-class _CryPageState extends State<CryPage> {
+class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
   final CryRecordingService recorder = CryRecordingService();
   final AudioPlayer player = AudioPlayer();
   StreamSubscription<void>? playerCompleteSubscription;
@@ -776,9 +776,19 @@ class _CryPageState extends State<CryPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     playerCompleteSubscription = player.onPlayerComplete.listen((_) {
       if (mounted) setState(() => playing = false);
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed &&
+        !busy &&
+        (recording || recorder.hasPendingCleanup)) {
+      unawaited(discardCaptureAndPreview());
+    }
   }
 
   Future<void> start() async {
@@ -979,6 +989,7 @@ class _CryPageState extends State<CryPage> {
   @override
   void dispose() {
     timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     final bytes = audioPreview;
     if (bytes != null) bytes.fillRange(0, bytes.length, 0);
     unawaited(playerCompleteSubscription?.cancel());
