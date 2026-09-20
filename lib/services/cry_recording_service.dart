@@ -1,8 +1,11 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:record/record.dart';
 
 class CryRecordingService {
   final AudioRecorder _recorder = AudioRecorder();
+  StreamSubscription<Uint8List>? _audioSubscription;
   bool _hasPendingCleanup = false;
 
   bool get hasPendingCleanup => _hasPendingCleanup;
@@ -19,16 +22,21 @@ class CryRecordingService {
     }
 
     try {
-      await _recorder.start(
-        RecordConfig(
-          encoder: kIsWeb ? AudioEncoder.wav : AudioEncoder.aacLc,
+      final audioStream = await _recorder.startStream(
+        const RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
           numChannels: 1,
           sampleRate: 16000,
         ),
       );
+
+      // Consume each chunk immediately and keep no audio bytes in memory.
+      _audioSubscription = audioStream.listen((_) {});
       _hasPendingCleanup = true;
     } catch (_) {
       try {
+        await _audioSubscription?.cancel();
+        _audioSubscription = null;
         await _recorder.cancel();
         _hasPendingCleanup = false;
       } catch (_) {
@@ -38,15 +46,17 @@ class CryRecordingService {
     }
   }
 
-  /// Stop capture and discard the temporary audio. The MVP has no analysis
-  /// backend, so recordings are never retained or uploaded.
+  /// Stop capture and discard it. This MVP has no analysis backend, so audio
+  /// is never retained or uploaded.
   Future<void> stopAndDelete() async {
     final isRecording = await _recorder.isRecording();
-    if (!isRecording && !_hasPendingCleanup) return;
+    if (!isRecording && !_hasPendingCleanup && _audioSubscription == null) {
+      return;
+    }
 
     try {
-      // cancel() stops capture and discards the temporary output on native and
-      // web platforms. This MVP intentionally never keeps or uploads audio.
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
       await _recorder.cancel();
       _hasPendingCleanup = false;
     } catch (_) {
