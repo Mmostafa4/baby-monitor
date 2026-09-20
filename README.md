@@ -1,39 +1,36 @@
 # Baby Monitor
 
-Flutter MVP with a public iPhone Safari web app. This release is not an App Store or TestFlight app.
+Flutter MVP prepared as an installable iPhone Safari web app. This is not an App Store or TestFlight app.
 
-## Current implementation
-- One-time medical disclaimer and required consent.
-- Child, caregiver, country, language, and birth-date onboarding. The profile is saved on the device.
-- Arabic user interface. The selected language is saved, but translations for other languages are not implemented yet.
-- Ten-second local microphone recording. The temporary audio file is deleted when capture ends or is cancelled; it is not uploaded.
-- The cry screen says “Analysis is currently unavailable.” No cry interpretation is generated.
-- Reassurance fields are temporary and are not saved yet.
-- Vaccination screen contains placeholders only; official schedules and reminders are not connected.
-- Static emergency guidance. Nearby hospital search is not implemented.
-- A subscription offer screen exists as a mockup, but purchases and the offer are not connected to the app flow.
+## What is included
 
-## Important production boundaries
-The audio classifier, official vaccination schedules, subscriptions, authentication, and remote pricing must be connected to a secure backend before release. The app must not claim to diagnose illness from crying. Vaccination content must be reviewed and sourced from each country's official health authority.
+- Consent and child profile setup. The profile stays in local browser storage.
+- Arabic interface. The selected language is saved, but translations are not implemented yet.
+- Up to 10 seconds of microphone capture through an in-memory stream. Audio chunks are discarded as they arrive; no audio file is kept or uploaded.
+- The cry screen says “Analysis is currently unavailable.” The app does not interpret crying.
+- Reassurance fields are temporary and are not saved.
+- Vaccination entries are placeholders; official schedules and reminders are not connected.
+- Emergency guidance is static; nearby hospital search is not implemented.
+- The subscription screen is a mockup; purchases are not connected.
 
-## Running
+## Use it on iPhone
 
-### iPhone
+Open the published HTTPS address in Safari. Tap **Share → Add to Home Screen → Add**, then open Baby Monitor from the Home Screen. Allow microphone access when you start a recording.
 
-The iPhone-ready version is a web app served over HTTPS. Open its published address in Safari, choose **Share → Add to Home Screen**, then tap **Add**. Allow microphone access when starting a recording. The app records for up to 10 seconds, discards the temporary audio, and does not send audio to a server.
+The app records for up to 10 seconds, immediately discards the audio stream, and does not send it to a server. It currently shows that cry analysis is unavailable.
 
-The repository also has a native iOS project with microphone permission. App Store/TestFlight distribution still needs Apple signing, a registered bundle ID, and a real-iPhone build check.
+## Native app status
 
-### Development
+The repository contains an early iOS project scaffold, but it is not a release-ready native app. App Store or TestFlight distribution needs a complete Xcode project, Apple signing, a registered bundle ID, and a real-iPhone build and microphone check.
 
-Install Flutter, run `flutter create --platforms=web .` and `flutter pub get`, then `flutter run -d chrome` for web. Native Android/iOS builds use the platform folders in the repository; see `docs/native-audio-permissions.md` for microphone permission entries.
+## Production requirements
 
-The child profile is stored on the device using local preferences. The prototype does not upload profile data or audio, and its local preferences are not encrypted.
+Before presenting this as a complete baby-monitoring product, add a validated cry-analysis model and secure backend. Do not claim to diagnose illness from crying. Vaccination content must come from and be reviewed against each country's official health authority. Add authentication, privacy protections, parental consent, a privacy policy, and proper data-deletion controls before collecting audio or health-related data.
 
-## Security plan
-- Never ship API secrets, payment secrets, or admin credentials in the app.
-- Use a backend to verify Google Play/App Store receipts and entitlements.
-- Store only short-lived signed upload URLs for audio; delete raw recordings by default.
-- Enforce authentication, authorization, rate limits, TLS, encrypted storage, audit logs, and server-side validation.
-- Make price and vaccination data server-controlled with versioning and an admin review workflow.
-- Publish a privacy policy and obtain the required parental/child-data consent before collecting audio or health-related data.
+Never ship API keys, payment secrets, or admin credentials in the app. Verify subscription entitlements on the server and keep prices and vaccination data under a reviewed update process.
+
+## Development
+
+Install Flutter, run `flutter create --platforms=web .` and `flutter pub get`, then `flutter run -d chrome`. The public iPhone release is served over HTTPS through GitHub Pages.
+
+The prototype stores the child profile in browser storage, which is not encrypted. Audio is not retained.
