@@ -20,7 +20,7 @@ Android declares microphone and foreground location permissions. iOS includes mi
 
 ## Development
 
-Install Flutter, then run `flutter pub get`. Use `flutter run -d chrome` for a browser preview or `flutter run` with a connected device for a native run.
+Install Flutter. For an Android/iOS run from a fresh checkout, first follow [the platform scaffolding note](docs/platform-scaffolding.md) to generate the SDK-specific toolchain files. Then run `flutter pub get`. Use `flutter run -d chrome` for a browser preview or `flutter run` with a connected device for a native run.
 
 The native project identifiers are still Flutter template identifiers. Android/iOS signing, store submission, legal review, medical review of schedule rows, and real-device release checks are not part of this MVP branch.
 
