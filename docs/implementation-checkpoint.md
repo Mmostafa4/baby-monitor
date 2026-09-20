@@ -1,10 +1,23 @@
-# Next implementation checkpoint
+# Implementation checkpoint
 
-Implemented in this checkpoint:
+## Included in the MVP
 
-- A versioned backend contract for authenticated 10-second cry-analysis.
-- Explicit validation/error states for missing model, invalid audio, expired entitlement, and oversized uploads.
-- A subscription offer screen with a 7-day trial and a server-controlled launch-price display.
-- Documentation that prevents client-side unlocking and fake medical results.
+- Arabic-first onboarding, a local child profile, and an explicit medical notice.
+- Optional GPS consent in setup and foreground-only location lookup from Emergency. Successful location lookup is shown with a check mark; coordinates are passed to Apple Maps and are not saved by the app.
+- Ten-second microphone capture with a captured-byte check and short-lived in-memory playback. The parent can delete it; no persistent audio file or upload is created.
+- Age-based vaccine reminder tables for the countries in onboarding, local completion checkboxes, and source links.
+- Emergency guidance and a newborn Q&A screen that clearly reports it is not connected.
+- Android/iOS scaffold with microphone and foreground location declarations.
 
-Not claimed as complete: real billing, a trained/validated crying classifier, official vaccination datasets, production authentication, platform permission files, and medical/legal review. These require external credentials, official data, and testing on physical devices.
+## Deliberately unavailable
+
+- Cry analysis: the app displays “Analysis is currently unavailable.” No cry label or diagnosis is generated.
+- Newborn Q&A: no endpoint is configured, so questions are not sent.
+- Payments, trials, subscription entitlement checks, authentication, and backend services.
+
+## Remaining before a store release
+
+- Replace template bundle/package identifiers, configure signing, and build on Android and iOS devices.
+- Confirm microphone and location prompts on real devices.
+- Have the vaccine reminder rows and emergency guidance reviewed by the relevant medical authority.
+- Complete privacy, consent, and legal review for the intended launch countries.
