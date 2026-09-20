@@ -14,4 +14,4 @@ Cry analysis is unavailable. No model, backend, authentication, subscription pur
 - Review vaccine schedules and emergency guidance with the relevant health authorities or qualified clinicians.
 - Complete privacy, parental-consent, support-contact, and legal review.
 
-The existing iPhone Safari web app remains separately published. This branch does not add a deployment workflow or publish changes.
+The existing iPhone Safari web app remains published. This branch does not change its deployment workflow; merging to `main` triggers the existing GitHub Pages deployment. Keep this branch unmerged until publication is approved.
