@@ -1,31 +1,85 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 class CryRecordingService {
   final AudioRecorder _recorder = AudioRecorder();
+  StreamSubscription<Uint8List>? _audioSubscription;
+  bool _hasPendingCleanup = false;
 
-  Future<bool> hasMicrophonePermission() => _recorder.hasPermission();
+  bool get hasPendingCleanup => _hasPendingCleanup;
 
-  Future<String?> recordTenSeconds() async {
-    if (!await _recorder.hasPermission()) return null;
-    final directory = await getTemporaryDirectory();
-    final path = '${directory.path}/cry_${DateTime.now().millisecondsSinceEpoch}.m4a';
-    await _recorder.start(
-      const RecordConfig(encoder: AudioEncoder.aacLc, numChannels: 1, sampleRate: 16000),
-      path: path,
-    );
-    await Future<void>.delayed(const Duration(seconds: 10));
-    final output = await _recorder.stop();
-    if (output == null || !File(output).existsSync()) return null;
-    return output;
+  Future<void> start() async {
+    if (_hasPendingCleanup) await cancel();
+
+    if (!await _recorder.hasPermission()) {
+      throw const CryRecordingException('نحتاج إذن الميكروفون لبدء التسجيل.');
+    }
+
+    if (await _recorder.isRecording()) {
+      throw const CryRecordingException('يوجد تسجيل جارٍ بالفعل.');
+    }
+
+    try {
+      final audioStream = await _recorder.startStream(
+        const RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
+          numChannels: 1,
+          sampleRate: 16000,
+        ),
+      );
+
+      // Consume each chunk immediately and keep no audio bytes in memory.
+      _audioSubscription = audioStream.listen((_) {});
+      _hasPendingCleanup = true;
+    } catch (_) {
+      try {
+        await _audioSubscription?.cancel();
+        _audioSubscription = null;
+        await _recorder.cancel();
+        _hasPendingCleanup = false;
+      } catch (_) {
+        _hasPendingCleanup = true;
+      }
+      rethrow;
+    }
   }
 
-  Future<void> cancel() async {
-    if (await _recorder.isRecording()) await _recorder.stop();
+  /// Stop capture and discard it. This MVP has no analysis backend, so audio
+  /// is never retained or uploaded.
+  Future<void> stopAndDelete() async {
+    final isRecording = await _recorder.isRecording();
+    if (!isRecording && !_hasPendingCleanup && _audioSubscription == null) {
+      return;
+    }
+
+    try {
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
+      await _recorder.cancel();
+      _hasPendingCleanup = false;
+    } catch (_) {
+      _hasPendingCleanup = true;
+      throw const CryRecordingException('تعذر إنهاء التسجيل بأمان. حاول مرة أخرى.');
+    }
   }
 
-  Future<void> dispose() => _recorder.dispose();
+  Future<void> cancel() => stopAndDelete();
+
+  Future<void> dispose() async {
+    try {
+      await cancel();
+    } finally {
+      await _recorder.dispose();
+    }
+  }
+}
+
+class CryRecordingException implements Exception {
+  final String message;
+  const CryRecordingException(this.message);
+
+  @override
+  String toString() => message;
 }
