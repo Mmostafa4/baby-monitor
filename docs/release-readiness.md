@@ -1,26 +1,17 @@
 # Release readiness
 
-This MVP captures up to 10 seconds of audio as a temporary stream, discards chunks immediately, and displays “Analysis is currently unavailable.” It does not store audio, upload audio, or interpret crying.
+## MVP status
 
-## iPhone Safari web app
+The repository contains a Flutter MVP with Android/iOS scaffolding, local onboarding, optional foreground GPS, short local audio capture, emergency guidance, vaccine reminders, and an offline-by-default newborn Q&A screen.
 
-- Served over HTTPS so Safari can request microphone permission.
-- Can be added to the Home Screen from Safari using **Share → Add to Home Screen**.
-- Profile data stays in browser storage and is not encrypted.
-- The web app is the current public release path; the recording stream is discarded locally.
+Cry analysis is unavailable. No model, backend, authentication, subscription purchase, or trial entitlement is connected. Audio is held in memory for preview and is not uploaded.
 
-## Native App Store/TestFlight app
+## Required before store distribution
 
-The repository's iOS folder is an early scaffold, not a ready-to-ship native app. Before native distribution:
+- Replace the template Android package and iOS bundle identifiers.
+- Configure Android/iOS signing and produce device builds.
+- Check microphone and location permission flows on physical devices.
+- Review vaccine schedules and emergency guidance with the relevant health authorities or qualified clinicians.
+- Complete privacy, parental-consent, support-contact, and legal review.
 
-- Complete and validate the Xcode project and Flutter iOS build.
-- Set the production bundle identifier and Apple signing.
-- Build and test microphone capture on a physical iPhone.
-- Complete App Store Connect setup and meet Apple's review requirements.
-
-## Future production features
-
-- A validated model and secure HTTPS backend are required before showing a cry interpretation.
-- Authentication, server-side entitlement checks, and in-app purchases are not part of this MVP.
-- Source and medically review each country's vaccination schedule before displaying dates or recommendations.
-- Add a privacy policy and complete parental-consent, data-deletion, and security work before collecting audio or health-related data.
+The existing iPhone Safari web app remains separately published. This branch does not add a deployment workflow or publish changes.
