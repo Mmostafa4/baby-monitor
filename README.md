@@ -15,7 +15,7 @@ Flutter MVP prepared as an installable iPhone Safari web app. This is not an App
 
 ## Use it on iPhone
 
-Open the published HTTPS address in Safari. Tap **Share → Add to Home Screen → Add**, then open Baby Monitor from the Home Screen. Allow microphone access when you start a recording.
+Open the [Baby Monitor web app](https://mmostafa4.github.io/baby-monitor/) in Safari. Tap **Share → Add to Home Screen → Add**, then open Baby Monitor from the Home Screen. Allow microphone access when you start a recording.
 
 The app records for up to 10 seconds, immediately discards the audio stream, and does not send it to a server. It currently shows that cry analysis is unavailable.
 
