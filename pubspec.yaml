@@ -1,10 +1,10 @@
 name: baby_monitor
-description: Baby Monitor - an educational infant-care companion for Android and iOS.
+description: Baby Monitor - an educational infant-care companion with an iPhone Safari web app.
 publish_to: "none"
 version: 0.1.0+1
 
 environment:
-  sdk: ">=3.3.0 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -15,8 +15,7 @@ dependencies:
   geolocator: ^13.0.1
   url_launcher: ^6.3.1
   flutter_svg: ^2.0.10+1
-  record: ^5.1.2
-  path_provider: ^2.1.4
+  record: ^6.2.1
   http: ^1.2.2
 
 dev_dependencies:
