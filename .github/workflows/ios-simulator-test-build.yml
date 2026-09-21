@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ios-simulator-test-${{ github.ref }}
@@ -27,6 +27,25 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Generate a complete iOS project
+        run: |
+          scaffold_root="$RUNNER_TEMP/baby-monitor-ios-scaffold"
+          icon_backup="$RUNNER_TEMP/baby-monitor-app-iconset"
+          flutter create --no-pub --template app --platforms=ios --org com.example --project-name baby_monitor "$scaffold_root"
+          cp -R ios/Runner/Assets.xcassets/AppIcon.appiconset "$icon_backup"
+          rm -rf ios
+          cp -R "$scaffold_root/ios" ios
+          rm -rf ios/Runner/Assets.xcassets/AppIcon.appiconset
+          cp -R "$icon_backup" ios/Runner/Assets.xcassets/AppIcon.appiconset
+          python3 scripts/configure_ios.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ios
+          if ! git diff --cached --quiet; then
+            git commit -m "build: generate complete iOS platform scaffold"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
 
       - name: Resolve packages
         run: flutter pub get
