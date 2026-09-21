@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
+      ANDROID_APPLICATION_ID: ${{ vars.ANDROID_APPLICATION_ID }}
       BABY_MONITOR_API_ENDPOINT: ${{ vars.BABY_MONITOR_API_ENDPOINT }}
       FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
       FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}

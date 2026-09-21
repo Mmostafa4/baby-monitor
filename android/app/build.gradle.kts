@@ -4,6 +4,29 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+
+val androidApplicationId = System.getenv("ANDROID_APPLICATION_ID")
+    ?.takeIf { it.isNotBlank() }
+    ?: "com.example.baby_monitor"
+
+val uploadKeystorePath = System.getenv("ANDROID_UPLOAD_KEYSTORE_PATH").orEmpty()
+val uploadKeystorePassword = System.getenv("ANDROID_UPLOAD_KEYSTORE_PASSWORD").orEmpty()
+val uploadKeyAlias = System.getenv("ANDROID_UPLOAD_KEY_ALIAS").orEmpty()
+val uploadKeyPassword = System.getenv("ANDROID_UPLOAD_KEY_PASSWORD").orEmpty()
+val hasUploadSigning = listOf(
+    uploadKeystorePath,
+    uploadKeystorePassword,
+    uploadKeyAlias,
+    uploadKeyPassword,
+).all { it.isNotBlank() }
+val releaseSigningRequired = System.getenv("ANDROID_RELEASE_SIGNING_REQUIRED") == "true"
+
+if (releaseSigningRequired && !hasUploadSigning) {
+    throw org.gradle.api.GradleException(
+        "Release signing is required, but the Android upload-key configuration is incomplete.",
+    )
+}
+
 android {
     namespace = "com.example.baby_monitor"
     compileSdk = flutter.compileSdkVersion
@@ -16,7 +39,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.baby_monitor"
+        applicationId = androidApplicationId
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,11 +52,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasUploadSigning) {
+            create("release") {
+                storeFile = file(uploadKeystorePath)
+                storePassword = uploadKeystorePassword
+                keyAlias = uploadKeyAlias
+                keyPassword = uploadKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasUploadSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

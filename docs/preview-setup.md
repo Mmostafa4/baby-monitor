@@ -45,3 +45,34 @@ App Store provisioning في حساب Apple حرفيًا. نزّلي ملف ال�
 
 يمرّر بناء Android وبناء محاكي iOS إعداد Firebase وعنوان الخادم إلى التطبيق عند
 توفرها. من دونها يظل التسجيل والاستماع والحذف محليًا، ويظهر أن التحليل غير مفعّل.
+
+
+## Android private beta in Google Play
+
+Use the manual workflow **Build Android Google Play private beta**. The Play track is
+always `internal`; this workflow cannot publish to the public production track.
+
+1. Enroll in Play Console and create the app using the final, owner-controlled
+   `ANDROID_APPLICATION_ID`. Do not use the current `com.example.baby_monitor`
+   preview ID for a store listing; keep the chosen ID permanently.
+2. Create an Android upload keystore and add these GitHub Actions secrets:
+   `ANDROID_UPLOAD_KEYSTORE_BASE64`, `ANDROID_UPLOAD_KEYSTORE_PASSWORD`,
+   `ANDROID_UPLOAD_KEY_ALIAS`, and `ANDROID_UPLOAD_KEY_PASSWORD`. Keep the
+   keystore and passwords private; do not commit them or send them in chat.
+3. Add the variables `ANDROID_APPLICATION_ID`, `BABY_MONITOR_API_ENDPOINT`,
+   `FIREBASE_API_KEY`, `FIREBASE_ANDROID_APP_ID`,
+   `FIREBASE_MESSAGING_SENDER_ID`, and `FIREBASE_PROJECT_ID`. The endpoint
+   must be HTTPS and end in `/v1/cry-analysis`.
+4. Run the workflow once with `publish_to_internal` unchecked to build a signed
+   AAB artifact. Use it to create/initialize the app and its first release in
+   Play Console if the app has not been uploaded before.
+5. For an automated internal-track upload, create a Google Play service account,
+   grant it app release access in Play Console, save its JSON as the
+   `PLAY_SERVICE_ACCOUNT_JSON` GitHub Actions secret, and rerun with
+   `publish_to_internal` checked. This path checks that the model service is
+   ready before uploading.
+
+For new personal Play Console accounts, Google currently requires a closed test
+with at least 12 opted-in testers for 14 continuous days before requesting
+production access; that is separate from an internal beta. See Google's
+[testing requirements](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en).

@@ -1,0 +1,126 @@
+name: Build Android Google Play private beta
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_to_internal:
+        description: Upload this build to the private Google Play internal testing track
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-play-beta-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    name: Build signed Android beta
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PUBLISH_TO_INTERNAL: ${{ inputs.publish_to_internal }}
+      ANDROID_APPLICATION_ID: ${{ vars.ANDROID_APPLICATION_ID }}
+      ANDROID_RELEASE_SIGNING_REQUIRED: "true"
+      ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+      ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+      ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+      ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+      BABY_MONITOR_API_ENDPOINT: ${{ vars.BABY_MONITOR_API_ENDPOINT }}
+      FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+      FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}
+      FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Validate app ID and upload configuration
+        shell: bash
+        run: |
+          missing=()
+          required=(ANDROID_APPLICATION_ID ANDROID_UPLOAD_KEYSTORE_BASE64 ANDROID_UPLOAD_KEYSTORE_PASSWORD ANDROID_UPLOAD_KEY_ALIAS ANDROID_UPLOAD_KEY_PASSWORD)
+          if [[ "$PUBLISH_TO_INTERNAL" == "true" ]]; then
+            required+=(PLAY_SERVICE_ACCOUNT_JSON BABY_MONITOR_API_ENDPOINT FIREBASE_API_KEY FIREBASE_ANDROID_APP_ID FIREBASE_MESSAGING_SENDER_ID FIREBASE_PROJECT_ID)
+          fi
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then missing+=("$name"); fi
+          done
+          if ((${#missing[@]})); then
+            printf '::error::Missing GitHub Actions configuration: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          if [[ "$ANDROID_APPLICATION_ID" == com.example* ]]; then
+            echo "::error::Set a unique final Android application ID before creating the Play Console app."
+            exit 1
+          fi
+          if [[ ! "$ANDROID_APPLICATION_ID" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
+            echo "::error::ANDROID_APPLICATION_ID is not a valid Android application ID."
+            exit 1
+          fi
+
+      - name: Confirm analysis backend before Play testing
+        if: ${{ inputs.publish_to_internal }}
+        shell: bash
+        run: |
+          if [[ "$BABY_MONITOR_API_ENDPOINT" != https://*/v1/cry-analysis ]]; then
+            echo "::error::BABY_MONITOR_API_ENDPOINT must be an HTTPS /v1/cry-analysis URL."
+            exit 1
+          fi
+          health_url="${BABY_MONITOR_API_ENDPOINT%/v1/cry-analysis}/v1/health"
+          response="$(curl --fail --silent --show-error --retry 8 --retry-delay 10 --retry-connrefused --max-time 20 "$health_url")"
+          printf '%s' "$response" | jq --exit-status '.model_ready == true' >/dev/null
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Import Android upload key
+        shell: bash
+        run: |
+          printf '%s' "$ANDROID_UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/baby-monitor-upload.jks"
+          if [[ ! -s "$RUNNER_TEMP/baby-monitor-upload.jks" ]]; then
+            echo "::error::The Android upload keystore could not be decoded."
+            exit 1
+          fi
+          echo "ANDROID_UPLOAD_KEYSTORE_PATH=$RUNNER_TEMP/baby-monitor-upload.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed Android App Bundle
+        shell: bash
+        run: |
+          version_code=$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
+          dart_defines=()
+          [[ -n "$BABY_MONITOR_API_ENDPOINT" ]] && dart_defines+=("--dart-define=BABY_MONITOR_API_ENDPOINT=$BABY_MONITOR_API_ENDPOINT")
+          [[ -n "$FIREBASE_API_KEY" ]] && dart_defines+=("--dart-define=FIREBASE_API_KEY=$FIREBASE_API_KEY")
+          [[ -n "$FIREBASE_ANDROID_APP_ID" ]] && dart_defines+=("--dart-define=FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID")
+          [[ -n "$FIREBASE_MESSAGING_SENDER_ID" ]] && dart_defines+=("--dart-define=FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID")
+          [[ -n "$FIREBASE_PROJECT_ID" ]] && dart_defines+=("--dart-define=FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID")
+          flutter build appbundle --release --build-number="$version_code" "${dart_defines[@]}"
+
+      - name: Save signed bundle for Play Console
+        uses: actions/upload-artifact@v4
+        with:
+          name: baby-monitor-play-beta-${{ github.sha }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload to private Google Play internal testing
+        if: ${{ inputs.publish_to_internal }}
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ vars.ANDROID_APPLICATION_ID }}
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          tracks: internal
+          status: completed
+          releaseName: Private beta ${{ github.run_number }}
