@@ -1,6 +1,0 @@
-#include "TargetConditionals.h"
-#if TARGET_OS_OSX
-#include <FlutterMacOS/FlutterMacOS.h>
-#else
-#include <Flutter/Flutter.h>
-#endif
