@@ -38,7 +38,14 @@ class CryAnalysisConfiguration {
   }
 
   static Uri? get endpoint {
-    final value = Uri.tryParse(_endpointValue);
+    final configured = _endpointValue.trim();
+    final value = Uri.tryParse(
+      configured.isNotEmpty
+          ? configured
+          : kIsWeb
+              ? Uri.base.resolve('/v1/cry-analysis').toString()
+              : '',
+    );
     if (value == null ||
         value.scheme != 'https' ||
         value.host.isEmpty ||
@@ -48,7 +55,8 @@ class CryAnalysisConfiguration {
     return value;
   }
 
-  static bool get isReady => endpoint != null && _firebaseInitialized;
+  static bool get isReady =>
+      endpoint != null && (kIsWeb || _firebaseInitialized);
 
   static Future<void> initialize() async {
     final values = [
@@ -97,11 +105,14 @@ class CryAnalysisConfiguration {
 
   static CryAnalysisClient? createClient() {
     final uri = endpoint;
-    if (uri == null || !_firebaseInitialized) return null;
+    if (uri == null || (!kIsWeb && !_firebaseInitialized)) return null;
     return CryAnalysisClient(endpoint: uri, accessToken: _getAccessToken);
   }
 
   static Future<String?> _getAccessToken() async {
+    // The private Safari beta authenticates with a same-origin HTTP-only
+    // session cookie. This placeholder only satisfies the shared client API.
+    if (kIsWeb && !_firebaseInitialized) return 'web-beta-session';
     if (!_firebaseInitialized || Firebase.apps.isEmpty) return null;
 
     try {
