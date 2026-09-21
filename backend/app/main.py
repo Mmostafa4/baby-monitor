@@ -3,15 +3,20 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import hashlib
+import hmac
 import json
 import logging
 import os
+import secrets
 import threading
 import time
 from typing import Any
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
@@ -32,6 +37,18 @@ MODEL_REVISION = os.getenv(
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
 FIREBASE_SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH", "").strip()
 FIREBASE_SERVICE_ACCOUNT_JSON = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
+BETA_ACCESS_KEY = os.getenv("BETA_ACCESS_KEY", "").strip()
+BETA_SESSION_COOKIE = "baby_monitor_beta"
+BETA_SESSION_COOKIE_VALUE = (
+    hmac.new(
+        BETA_ACCESS_KEY.encode("utf-8"),
+        b"baby-monitor-private-beta-session-v1",
+        hashlib.sha256,
+    ).hexdigest()
+    if BETA_ACCESS_KEY
+    else ""
+)
+WEB_DIR = os.getenv("BABY_MONITOR_WEB_DIR", "/srv/baby-monitor/web")
 
 MAX_REQUESTS_PER_USER_PER_HOUR = 20
 MAX_REQUESTS_GLOBAL_PER_HOUR = 100
@@ -51,6 +68,10 @@ class AnalysisResponse(BaseModel):
     experimental: bool = True
 
 
+class BetaSessionRequest(BaseModel):
+    access_code: str
+
+
 @dataclass
 class RequestLimit:
     timestamps: deque[float]
@@ -59,6 +80,14 @@ class RequestLimit:
 _limit_lock = threading.Lock()
 _user_limits: dict[str, RequestLimit] = defaultdict(lambda: RequestLimit(deque()))
 _global_requests: deque[float] = deque()
+
+
+def _valid_beta_session(value: str | None) -> bool:
+    return bool(
+        value
+        and BETA_SESSION_COOKIE_VALUE
+        and secrets.compare_digest(value, BETA_SESSION_COOKIE_VALUE)
+    )
 
 
 def _initialize_model() -> None:
@@ -107,6 +136,23 @@ app = FastAPI(
 app.add_middleware(MaxRequestBodySize, max_bytes=MAX_REQUEST_BODY_BYTES)
 
 
+@app.middleware("http")
+async def protect_private_web_app(request: Request, call_next):
+    path = request.url.path
+    if path == "/app" or path.startswith("/app/"):
+        if not _valid_beta_session(request.cookies.get(BETA_SESSION_COOKIE)):
+            return RedirectResponse(url="/", status_code=303)
+    return await call_next(request)
+
+
+if os.path.isdir(WEB_DIR):
+    app.mount(
+        "/app",
+        StaticFiles(directory=WEB_DIR, html=True),
+        name="private_baby_monitor_web",
+    )
+
+
 def _firebase_app():
     if not FIREBASE_PROJECT_ID:
         raise HTTPException(status_code=503, detail="Authentication is not configured.")
@@ -141,8 +187,20 @@ def _firebase_app():
 
 
 async def authenticated_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> str:
+    if _valid_beta_session(request.cookies.get(BETA_SESSION_COOKIE)):
+        return "private-beta"
+
+    if (
+        BETA_ACCESS_KEY
+        and credentials is not None
+        and credentials.scheme.lower() == "bearer"
+        and secrets.compare_digest(credentials.credentials, BETA_ACCESS_KEY)
+    ):
+        return "private-beta"
+
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=401, detail="Sign-in is required.")
 
@@ -227,6 +285,41 @@ def _classify(frames: bytes) -> tuple[str, int]:
     category = categories.get(normalized)
     score_percent = min(100, max(0, round(top_score * 100))) if category else 0
     return category or "unclear", score_percent
+
+
+_PRIVATE_BETA_LOGIN_PAGE = "<!doctype html>\n<html lang=\"ar\" dir=\"rtl\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n  <meta name=\"theme-color\" content=\"#fdfbff\">\n  <title>Baby Monitor • النسخة الخاصة</title>\n  <style>\n    :root { color-scheme: light; font-family: system-ui, -apple-system, sans-serif; }\n    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #fdfbff; color: #25202a; }\n    main { box-sizing: border-box; width: min(92vw, 420px); padding: 28px; border-radius: 24px; background: white; box-shadow: 0 10px 35px #34213916; }\n    h1 { margin: 0 0 8px; font-size: 1.6rem; }\n    p { line-height: 1.7; color: #625968; }\n    label { display: block; margin: 20px 0 8px; font-weight: 600; }\n    input, button { box-sizing: border-box; width: 100%; min-height: 50px; border-radius: 14px; font: inherit; }\n    input { border: 1px solid #aaa1ae; padding: 12px; direction: ltr; text-align: center; }\n    button { margin-top: 14px; border: 0; background: #9c3970; color: white; font-weight: 700; }\n    #status { min-height: 24px; }\n  </style>\n</head>\n<body>\n  <main>\n    <h1>Baby Monitor</h1>\n    <p>نسخة تجريبية خاصة للاستخدام على هاتفك. أدخلي رمز الدخول الذي وصلك لفتح التطبيق.</p>\n    <form id=\"login\">\n      <label for=\"code\">رمز دخول النسخة التجريبية</label>\n      <input id=\"code\" type=\"password\" autocomplete=\"current-password\" required maxlength=\"128\">\n      <button id=\"submit\" type=\"submit\">فتح التطبيق</button>\n    </form>\n    <p id=\"status\" role=\"status\" aria-live=\"polite\"></p>\n  </main>\n  <script>\n    const form = document.getElementById('login');\n    const input = document.getElementById('code');\n    const status = document.getElementById('status');\n    const button = document.getElementById('submit');\n    form.addEventListener('submit', async (event) => {\n      event.preventDefault();\n      button.disabled = true;\n      status.textContent = 'جارٍ التحقق…';\n      try {\n        const response = await fetch('/v1/session', {\n          method: 'POST',\n          credentials: 'same-origin',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({ access_code: input.value })\n        });\n        if (response.ok) {\n          location.replace('/app/');\n          return;\n        }\n        status.textContent = response.status === 503\n          ? 'خدمة النسخة الخاصة لم تُجهّز بعد.'\n          : response.status === 429\n            ? 'محاولات كثيرة. انتظري قليلًا ثم أعيدي المحاولة.'\n            : 'الرمز غير صحيح. تحققي منه وأعيدي المحاولة.';\n      } catch (_) {\n        status.textContent = 'تعذر الاتصال. تحققي من الإنترنت وحاولي مرة أخرى.';\n      } finally {\n        button.disabled = false;\n      }\n    });\n  </script>\n</body>\n</html>"
+
+
+@app.get("/", response_class=HTMLResponse)
+def private_beta_login() -> HTMLResponse:
+    return HTMLResponse(_PRIVATE_BETA_LOGIN_PAGE)
+
+
+@app.post("/v1/session")
+def create_private_beta_session(
+    payload: BetaSessionRequest,
+    request: Request,
+    response: Response,
+) -> dict[str, bool]:
+    if not BETA_ACCESS_KEY:
+        raise HTTPException(status_code=503, detail="Private beta is not configured.")
+    remote = request.client.host if request.client else "unknown"
+    _consume_rate_limit("login:" + remote)
+    if len(payload.access_code) > 128 or not secrets.compare_digest(
+        payload.access_code.strip(), BETA_ACCESS_KEY
+    ):
+        raise HTTPException(status_code=401, detail="Invalid preview code.")
+
+    response.set_cookie(
+        key=BETA_SESSION_COOKIE,
+        value=BETA_SESSION_COOKIE_VALUE,
+        max_age=12 * 60 * 60,
+        secure=True,
+        httponly=True,
+        samesite="strict",
+        path="/",
+    )
+    return {"ok": True}
 
 
 ADVICE = {
