@@ -32,7 +32,7 @@ jobs:
         run: flutter pub get
 
       - name: Build unsigned iOS simulator app
-        run: flutter build ios --simulator --release --no-codesign
+        run: flutter build ios --simulator --debug --no-codesign
 
       - name: Package simulator app
         run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app baby-monitor-ios-simulator.zip
