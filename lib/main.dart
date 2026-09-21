@@ -16,6 +16,7 @@ import 'models/daily_log_entry.dart';
 import 'services/cry_recording_service.dart';
 import 'services/newborn_assistant_service.dart';
 import 'widgets/baby_monitor_logo.dart';
+import 'widgets/cry_needs_guide.dart';
 
 void main() => runApp(const BabyMonitorApp());
 
@@ -1062,6 +1063,8 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
             padding: const EdgeInsets.only(top: 18),
             child: Text(message, textAlign: TextAlign.center),
           ),
+        const SizedBox(height: 12),
+        const CryNeedsGuide(),
         const SizedBox(height: 10),
         const Text(
           'إذا كنت قلقة على تنفس الطفل أو صحته، اطلبي الرعاية الطبية ولا تعتمدي على التسجيل.',

@@ -10,7 +10,7 @@ The current published iPhone Safari version is at [mmostafa4.github.io/baby-moni
 - Editable child profile, a daily care log with date navigation and local history, copyable summaries for a caregiver or clinician, and a control to erase local data.
 - Optional GPS consent during setup. Location is requested only after consent, and the Emergency screen shows a check when a location fix succeeds before opening a Google Maps search. Coordinates are not saved by the app.
 - Up to 10 seconds of microphone capture, an in-memory audio preview, and a delete action. The app does not save or upload audio.
-- Cry analysis remains unavailable and the screen says **Analysis is currently unavailable.**
+- Cry analysis remains unavailable and the screen says **Analysis is currently unavailable.** See [the evidence review](docs/cry-analysis-evidence.md) for the research limits and the five requested categories.
 - Draft age-based vaccination reminders for the countries listed in onboarding, with local completion marks and links to source schedules. These are reminders, not a clinical catch-up plan.
 - A newborn Q&A screen that is disconnected by default. No question is sent in this MVP.
 - Subscription UI is a mockup; no purchase is connected.
