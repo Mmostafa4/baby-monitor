@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +35,13 @@ class _BabyMonitorAppState extends State<BabyMonitorApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Baby Monitor',
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.pink,
@@ -269,16 +277,6 @@ const List<String> countries = [
   'تركيا',
 ];
 
-const List<String> languages = [
-  'العربية',
-  'English',
-  'Français',
-  'Deutsch',
-  'हिन्दी',
-  '中文',
-  'Türkçe',
-];
-
 class ConsentAndProfile extends StatefulWidget {
   final AppStore store;
   final VoidCallback onSaved;
@@ -302,7 +300,6 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
   final TextEditingController father = TextEditingController();
 
   String country = 'مصر';
-  String language = 'العربية';
   DateTime dob = DateTime.now();
   bool acceptedMedicalNotice = false;
   bool locationConsent = false;
@@ -318,7 +315,6 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
     mother.text = existing.mother;
     father.text = existing.father;
     country = existing.country;
-    language = existing.language;
     dob = existing.dob;
     locationConsent = existing.locationConsent;
     acceptedMedicalNotice = true;
@@ -366,7 +362,7 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
         mother: mother.text.trim(),
         father: father.text.trim(),
         country: country,
-        language: language,
+        language: 'العربية',
         dob: dob,
         locationConsent: locationConsent,
       ),
@@ -419,18 +415,11 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: language,
-                  items: languages
-                      .map((value) => DropdownMenuItem(
-                            value: value,
-                            child: Text(value),
-                          ))
-                      .toList(),
-                  onChanged: (value) => setState(() => language = value!),
-                  decoration: const InputDecoration(
-                    labelText: 'اللغة',
-                    border: OutlineInputBorder(),
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.language),
+                    title: Text('لغة التطبيق'),
+                    subtitle: Text('العربية هي اللغة المتاحة حاليًا.'),
                   ),
                 ),
                 const SizedBox(height: 12),

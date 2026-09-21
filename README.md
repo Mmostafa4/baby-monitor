@@ -1,6 +1,6 @@
 # Baby Monitor
 
-Arabic-first Flutter MVP for Android, iOS, and the web.
+Arabic-only Flutter MVP for Android, iOS, and the web. The profile screen states that Arabic is the language available in this build; other translations are not selectable yet.
 
 The current published iPhone Safari version is at [mmostafa4.github.io/baby-monitor](https://mmostafa4.github.io/baby-monitor/). This branch is not live. Merging to `main` triggers the repository's existing GitHub Pages deployment.
 

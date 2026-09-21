@@ -2,7 +2,7 @@
 
 ## MVP status
 
-The repository contains a Flutter MVP with Android/iOS scaffolding, editable local onboarding, optional foreground GPS, short local audio capture, a date-based local care log, emergency guidance, vaccine reminders, and an offline-by-default newborn Q&A screen. Parents can export a single day's summary by copying it and can erase the local profile and logs in Settings.
+The repository contains an Arabic-only Flutter MVP with Android/iOS scaffolding, editable local onboarding, optional foreground GPS, short local audio capture, a date-based local care log, emergency guidance, vaccine reminders, and an offline-by-default newborn Q&A screen. Native date pickers and system controls are localized in Arabic. Parents can export a single day's summary by copying it and can erase the local profile and logs in Settings.
 
 Cry analysis is unavailable. No model, backend, authentication, subscription purchase, or trial entitlement is connected. Audio is held in memory for preview and is not uploaded.
 
