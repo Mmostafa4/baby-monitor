@@ -1,0 +1,12 @@
+{
+  "name": "Baby Monitor",
+  "short_name": "Baby Monitor",
+  "id": "/app/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fdfbff",
+  "theme_color": "#fdfbff",
+  "description": "نسخة تجريبية خاصة لمتابعة رعاية الطفل"
+}
