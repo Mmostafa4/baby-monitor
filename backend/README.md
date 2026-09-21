@@ -23,15 +23,20 @@ See [MODEL_NOTICE.md](MODEL_NOTICE.md) for model and training-data notices. The 
 - In-memory limits are 20 requests per Firebase user and 100 requests total per hour per service process. These reset when the process restarts and are not production-grade billing protection.
 - There is no subscription or trial entitlement check. Do not expose this preview publicly or use it for paid access.
 
+## Private iPhone Safari beta
+
+The root Railway image also builds and serves the Flutter web app at `/app/`. Open the service root in Safari, enter the closed-beta invite code, then use Share → Add to Home Screen. The login endpoint sets a secure, HTTP-only, same-origin cookie; `BETA_ACCESS_KEY` must be configured as a Railway service secret. The API accepts that cookie only for this private preview, rate-limits the shared tester, and also supports Firebase ID tokens for native builds. Do not put the invite code in the repository or a Flutter build define.
+
+The web app derives its API endpoint from its HTTPS origin. It uses the login cookie for analysis, so no Firebase web app registration is required. Location, profile, daily logs, and vaccine checkmarks remain in the browser's local storage.
+
 ## Run the service locally
 
-Requirements: Docker with Compose, an internet connection for the initial model download, a Firebase project, and a Firebase Admin service-account key. Do not commit the key.
+Requirements: Docker with Compose and an internet connection for the initial model download. Firebase is required only for native Android/iOS authentication; the Railway Safari beta uses `BETA_ACCESS_KEY`.
 
-1. In Firebase Console, enable Authentication → Anonymous and register the Android and iOS app identifiers.
-2. Copy .env.example to .env and set FIREBASE_PROJECT_ID.
-3. For local Docker Compose, place the Firebase Admin JSON key at backend/secrets/firebase-service-account.json. For Railway, set the full Admin JSON in the FIREBASE_SERVICE_ACCOUNT_JSON service variable and mark it as a secret. Never commit or send the key.
-4. From backend/, run docker compose up --build. Model loading may take several minutes. The container listens only on 127.0.0.1:8000.
-5. Check http://127.0.0.1:8000/v1/health. A local HTTP endpoint is for health inspection only; the mobile app refuses to upload to anything except HTTPS.
+1. Copy .env.example to .env. Set `BETA_ACCESS_KEY` to a long random invite code for a private web test. Keep the real value out of Git.
+2. If testing native builds, also set `FIREBASE_PROJECT_ID` and configure Firebase anonymous sign-in. Store the Firebase Admin JSON key at `backend/secrets/firebase-service-account.json` locally, or as a Railway secret named `FIREBASE_SERVICE_ACCOUNT_JSON`. Never commit or send the key.
+3. From backend/, run `docker compose up --build`. Model loading may take several minutes.
+4. Check `http://127.0.0.1:8000/v1/health`. The private app requires HTTPS because microphone recording and location access are browser secure-context features.
 
 The container needs enough memory for PyTorch and the model; allow at least 2 GB RAM for a CPU preview. For phone testing, deploy it behind an HTTPS reverse proxy and review the hosting provider's data-retention settings first. No backend has been deployed for this repository yet.
 
