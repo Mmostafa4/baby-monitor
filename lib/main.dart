@@ -13,12 +13,18 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'data/vaccine_schedules.dart';
 import 'models/daily_log_entry.dart';
+import 'services/cry_analysis_client.dart';
+import 'services/cry_analysis_configuration.dart';
 import 'services/cry_recording_service.dart';
 import 'services/newborn_assistant_service.dart';
 import 'widgets/baby_monitor_logo.dart';
 import 'widgets/cry_needs_guide.dart';
 
-void main() => runApp(const BabyMonitorApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await CryAnalysisConfiguration.initialize();
+  runApp(const BabyMonitorApp());
+}
 
 class BabyMonitorApp extends StatefulWidget {
   const BabyMonitorApp({super.key});
@@ -172,6 +178,7 @@ class AppStore {
     profile = null;
     completedVaccineIds.clear();
     dailyLogs.clear();
+    await CryAnalysisConfiguration.deleteAnonymousUser();
   }
 }
 
@@ -712,7 +719,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'التسجيل الصوتي مؤقت داخل الذاكرة ولا يُرفع. تحليل البكاء والمساعد الذكي غير متصلين في هذه النسخة.',
+                      'يبقى التسجيل على الجهاز ما لم تختاري تحليله. عند تفعيل التحليل التجريبي، لن يُرسل الصوت إلى خادم خارجي إلا بعد موافقة منفصلة لكل تسجيل؛ لا تُرسل بيانات الملف الشخصي.',
                     ),
                     SizedBox(height: 8),
                     Text(
@@ -760,8 +767,10 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
   int seconds = 0;
   bool recording = false;
   bool busy = false;
+  bool analyzing = false;
   bool playing = false;
   String message = '';
+  CryAnalysisResult? analysisResult;
 
   @override
   void initState() {
@@ -782,12 +791,13 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
   }
 
   Future<void> start() async {
-    if (recording || busy) return;
+    if (recording || busy || analyzing) return;
     await player.stop();
     _clearPreview();
     setState(() {
       busy = true;
       message = '';
+      analysisResult = null;
     });
 
     try {
@@ -843,7 +853,7 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
             audioPreview = bytes;
             message = 'تم تسجيل ' +
                 (bytes.length / 1024).toStringAsFixed(1) +
-                ' كيلوبايت محليًا. يمكنك الاستماع ثم حذف التسجيل؛ لا يُرفع الصوت ولا يُحلل البكاء بعد.';
+                ' كيلوبايت. يمكنك الاستماع أو حذفه. لن يُرسل للتحليل إلا بعد موافقتك.';
           } else {
             audioPreview = null;
             message =
@@ -931,6 +941,76 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _analyzePreview() async {
+    final bytes = audioPreview;
+    if (bytes == null || busy || analyzing) return;
+
+    final client = CryAnalysisConfiguration.createClient();
+    if (client == null) {
+      setState(() => message = CryAnalysisConfiguration.unavailableMessage);
+      return;
+    }
+
+    final consent = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إرسال التسجيل للتحليل التجريبي؟'),
+        content: const SingleChildScrollView(
+          child: Text(
+            'سيُرسل هذا المقطع الصوتي الذي مدته 10 ثوانٍ فقط عبر HTTPS إلى خادم التحليل. يعالجه الخادم في الذاكرة ولا يحفظه كملف أو في قاعدة بيانات. لا يُرسل اسم الطفل أو عمره أو ملفه. يُستخدم تسجيل دخول مجهول لإصدار رمز مؤقت، ولا يُرسل أي صوت قبل هذه الموافقة.\n\n'
+            'النموذج تجريبي وقد يخطئ. لا يميّز احتياج الطفل للحنان أو مستوى الضيق، ولا يشخّص المغص أو المرض أو حالات الطوارئ. لا تعتمدي على النتيجة بدل ملاحظة الطفل أو طلب الرعاية عند القلق.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('لا، أبقِه على الجهاز'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('أوافق على الإرسال هذه المرة'),
+          ),
+        ],
+      ),
+    );
+    if (consent != true || !mounted) return;
+
+    await player.stop();
+    setState(() {
+      analyzing = true;
+      playing = false;
+      message = 'جارٍ تحليل المقطع على خادم التجربة...';
+    });
+
+    try {
+      final result = await client.analyze(bytes);
+      if (mounted) {
+        setState(() {
+          analysisResult = result;
+          message = '';
+        });
+      }
+    } on CryAnalysisException catch (error) {
+      if (mounted) setState(() => message = error.message);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => message = 'تعذر إكمال التحليل. حُذف التسجيل من ذاكرة التطبيق.',
+        );
+      }
+    } finally {
+      bytes.fillRange(0, bytes.length, 0);
+      if (identical(audioPreview, bytes)) audioPreview = null;
+      if (mounted) {
+        setState(() {
+          analyzing = false;
+          playing = false;
+          seconds = 0;
+        });
+      }
+    }
+  }
+
   Future<void> _deletePreview() async {
     await player.stop();
     _clearPreview();
@@ -938,12 +1018,14 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
       setState(() {
         playing = false;
         seconds = 0;
+        analysisResult = null;
         message = 'تم حذف التسجيل من الذاكرة.';
       });
     }
   }
 
   Future<void> discardCaptureAndPreview() async {
+    if (analyzing) return;
     timer?.cancel();
     final hadRecording = recording || recorder.hasPendingCleanup;
     try {
@@ -1020,7 +1102,7 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
           child: Padding(
             padding: EdgeInsets.all(14),
             child: Text(
-              'الصوت يبقى مؤقتًا في ذاكرة التطبيق للاستماع، ويمكن حذفه فورًا. يُحذف عند إغلاق الصفحة؛ لا يُحفظ كملف ولا يُرفع إلى خادم. تفسير البكاء غير متاح الآن.',
+              'الصوت يبقى مؤقتًا في ذاكرة التطبيق. الاستماع والحذف يعملان دون رفع. التحليل التجريبي يرسل الصوت فقط بعد موافقتك، ويُحذف من ذاكرة التطبيق بعد محاولة التحليل.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -1028,7 +1110,7 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
         const SizedBox(height: 12),
         Center(
           child: FilledButton.icon(
-            onPressed: busy || recording ? null : start,
+            onPressed: busy || recording || analyzing ? null : start,
             icon: const Icon(Icons.mic),
             label: Text(busy ? 'جارٍ تجهيز الميكروفون...' : 'ابدأ التسجيل'),
           ),
@@ -1037,14 +1119,14 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
           const SizedBox(height: 8),
           Center(
             child: OutlinedButton.icon(
-              onPressed: busy ? null : _playPreview,
+              onPressed: busy || analyzing ? null : _playPreview,
               icon: Icon(playing ? Icons.pause : Icons.play_arrow),
               label: Text(playing ? 'إيقاف الاستماع' : 'استمع للتسجيل'),
             ),
           ),
           Center(
             child: TextButton.icon(
-              onPressed: busy ? null : _deletePreview,
+              onPressed: busy || analyzing ? null : _deletePreview,
               icon: const Icon(Icons.delete_outline),
               label: const Text('حذف التسجيل الآن'),
             ),
@@ -1058,6 +1140,63 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
               label: const Text('إيقاف وحذف الصوت'),
             ),
           ),
+        if (audioPreview != null) ...[
+          const SizedBox(height: 4),
+          Center(
+            child: FilledButton.tonalIcon(
+              onPressed: busy || analyzing ? null : _analyzePreview,
+              icon: analyzing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_awesome),
+              label: Text(analyzing ? 'جارٍ التحليل...' : 'حلّل بمساعدة تجريبية'),
+            ),
+          ),
+          if (!CryAnalysisConfiguration.isReady)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                CryAnalysisConfiguration.unavailableMessage,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+        ],
+        if (analysisResult case final result?) ...[
+          const SizedBox(height: 12),
+          Card(
+            color: Theme.of(context).colorScheme.secondaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'أقرب فئة رجّحها النموذج التجريبي',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _categoryLabel(result.category),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(result.advice),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'هذا تخمين بين الفئات التي تعلّمها النموذج، وليس نسبة احتمال أو تشخيصًا. لا يتعرّف على طلب الحنان أو الضيق كسبب مستقل، وقد يخطئ مع أي صوت أو طفل.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         if (message.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 18),
@@ -1072,6 +1211,23 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
         ),
       ],
     );
+  }
+
+  String _categoryLabel(String category) {
+    switch (category) {
+      case 'hungry':
+        return 'جوع محتمل';
+      case 'belly_pain':
+        return 'ألم بطن محتمل — لا يثبت المغص';
+      case 'burping':
+        return 'حاجة للتجشؤ محتملة';
+      case 'discomfort':
+        return 'انزعاج عام محتمل';
+      case 'tiredness':
+        return 'تعب أو نعاس محتمل';
+      default:
+        return 'غير واضح';
+    }
   }
 }
 

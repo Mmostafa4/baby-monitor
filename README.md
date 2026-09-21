@@ -9,8 +9,8 @@ The current published iPhone Safari version is at [mmostafa4.github.io/baby-moni
 - Local child profile and medical-notice consent.
 - Editable child profile, a daily care log with date navigation and local history, copyable summaries for a caregiver or clinician, and a control to erase local data.
 - Optional GPS consent during setup. Location is requested only after consent, and the Emergency screen shows a check when a location fix succeeds before opening a Google Maps search. Coordinates are not saved by the app.
-- Up to 10 seconds of microphone capture, an in-memory audio preview, and a delete action. The app does not save or upload audio.
-- Cry analysis remains unavailable and the screen says **Analysis is currently unavailable.** See [the evidence review](docs/cry-analysis-evidence.md) for the research limits and the five requested categories.
+- Up to 10 seconds of microphone capture, in-memory playback, and deletion.
+- Optional experimental cry classification: a configured build asks for a separate confirmation before sending audio to an HTTPS backend. The result is the model's top-ranked category without a numeric confidence, not a diagnosis. It cannot identify a need for comfort or distress. Analysis is disabled in builds without a deployed server and Firebase configuration. See [the evidence review](docs/cry-analysis-evidence.md), [preview service setup](backend/README.md), and [phone test setup](docs/preview-setup.md).
 - Draft age-based vaccination reminders for the countries listed in onboarding, with local completion marks and links to source schedules. These are reminders, not a clinical catch-up plan.
 - A newborn Q&A screen that is disconnected by default. No question is sent in this MVP.
 - Subscription UI is a mockup; no purchase is connected.
@@ -21,8 +21,8 @@ Android declares microphone and foreground location permissions. iOS includes mi
 
 ## Development
 
-Install Flutter and run `flutter pub get` from the project root. On macOS, run `pod install` from `ios/` before building for iOS. Use `flutter run -d chrome` for a browser preview or `flutter run` with a connected device for a native run. See [the platform setup note](docs/platform-scaffolding.md) if regenerating native files after a Flutter SDK upgrade.
+Install Flutter and run `flutter pub get` from the project root. Before a local iOS build, run `python3 scripts/configure_ios.py` from the project root, then run `pod install` from `ios/`. Use `flutter run -d chrome` for a browser preview or `flutter run` with a connected device for a native run. See [the platform setup note](docs/platform-scaffolding.md) if regenerating native files after a Flutter SDK upgrade.
 
-The native project identifiers are still Flutter template identifiers. Android/iOS signing, store submission, legal review, medical review of schedule rows, and real-device release checks are not part of this MVP branch.
+The native project identifiers are still Flutter template identifiers until configured for your accounts. GitHub Actions can build an Android test APK and an unsigned iOS simulator app. A separate manual workflow prepares a signed iPhone IPA and uploads a beta to TestFlight after Apple signing and backend/Firebase settings are configured; the current branch has no such credentials or deployed backend, so analysis is disabled in its default build.
 
-Profile data, daily care logs, and vaccine checkmarks are stored locally with SharedPreferences. The app does not diagnose illness, interpret crying, or connect to a backend by default.
+Profile data, daily care logs, and vaccine checkmarks are stored locally with SharedPreferences. The app does not upload audio by default. The optional model covers hunger, belly pain, burping, general discomfort, and tiredness; it does not classify a need for affection or measure distress, and it is not validated for real-world accuracy.

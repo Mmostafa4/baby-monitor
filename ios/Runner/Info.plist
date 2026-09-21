@@ -67,7 +67,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>يُستخدم الميكروفون لتسجيل مقطع صوتي قصير بطلب منك. يبقى الصوت داخل التطبيق.</string>
+	<string>يُستخدم الميكروفون لتسجيل مقطع صوتي قصير بطلب منك. يبقى على الجهاز ما لم تختاري صراحةً إرساله للتحليل التجريبي.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>يُستخدم موقعك الحالي عند طلب البحث عن مستشفى أطفال قريب وبعد موافقتك.</string>
 </dict>

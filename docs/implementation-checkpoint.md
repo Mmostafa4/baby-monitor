@@ -6,20 +6,23 @@
 - Editable child profile, date-based daily care logs, and local history for crying, feeds, wet diapers, sleep, temperature, and notes.
 - Settings that explain local data handling and let the parent erase the local profile, care logs, and vaccine marks.
 - Optional GPS consent in setup and foreground-only location lookup from Emergency. Successful location lookup is shown with a check mark; coordinates are passed to a Google Maps search and are not saved by the app.
-- Ten-second microphone capture with a captured-byte check and short-lived in-memory playback. The parent can delete it; no persistent audio file or upload is created.
+- Ten-second microphone capture with a captured-byte check and short-lived in-memory playback. The parent can delete it without uploading.
+- An optional experimental cry-analysis client and CPU backend. A separate confirmation is required for each upload; the backend does not persist the audio and does not return a numeric confidence.
 - Age-based vaccine reminder tables for the countries in onboarding, local completion checkboxes, and source links.
 - Emergency guidance and a newborn Q&A screen that clearly reports it is not connected.
 - Android/iOS scaffold with microphone and foreground location declarations.
+- GitHub Actions build paths for a sideloadable Android test APK and unsigned iOS simulator app; a manually started, signed TestFlight beta path is prepared for accounts that have Apple signing and App Store Connect credentials.
 
 ## Deliberately unavailable
 
-- Cry analysis: the app displays “Analysis is currently unavailable.” No cry label or diagnosis is generated.
+- A live cry-analysis result is disabled until Firebase and an HTTPS backend are configured at build time. The repository contains a real, runnable experimental model service, but it is not deployed or clinically validated. The preview does not recognize a need for comfort or distress.
 - Newborn Q&A: no endpoint is configured, so questions are not sent.
-- Payments, trials, subscription entitlement checks, authentication, and backend services.
+- Payments, trials, subscription entitlement checks, and public backend hosting.
 - Push notifications for vaccine due dates and additional UI translations.
 
 ## Remaining before a store release
 
+- Configure Firebase and deploy the experimental endpoint before a private model preview; validate the model before any wider use. See [private preview setup](preview-setup.md).
 - Replace template bundle/package identifiers, configure signing, and build on Android and iOS devices.
 - Confirm microphone and location prompts on real devices.
 - Have the vaccine reminder rows and emergency guidance reviewed by the relevant medical authority.

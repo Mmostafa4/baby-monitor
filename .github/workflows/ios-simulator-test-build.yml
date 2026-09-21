@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ios-simulator-test-${{ github.ref }}
@@ -18,6 +18,13 @@ jobs:
     name: Build iOS simulator app
     runs-on: macos-15
     timeout-minutes: 60
+    env:
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
+      BABY_MONITOR_API_ENDPOINT: ${{ vars.BABY_MONITOR_API_ENDPOINT }}
+      FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+      FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+      FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
     steps:
       - name: Check out source
         uses: actions/checkout@v6
@@ -28,30 +35,21 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate a complete iOS project
-        run: |
-          scaffold_root="$RUNNER_TEMP/baby-monitor-ios-scaffold"
-          icon_backup="$RUNNER_TEMP/baby-monitor-app-iconset"
-          flutter create --no-pub --template app --platforms=ios --org com.example --project-name baby_monitor "$scaffold_root"
-          cp -R ios/Runner/Assets.xcassets/AppIcon.appiconset "$icon_backup"
-          rm -rf ios
-          cp -R "$scaffold_root/ios" ios
-          rm -rf ios/Runner/Assets.xcassets/AppIcon.appiconset
-          cp -R "$icon_backup" ios/Runner/Assets.xcassets/AppIcon.appiconset
-          python3 scripts/configure_ios.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ios
-          if ! git diff --cached --quiet; then
-            git commit -m "build: generate complete iOS platform scaffold"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
+      - name: Configure iOS permissions and deployment target
+        run: python3 scripts/configure_ios.py
 
       - name: Resolve packages
         run: flutter pub get
 
       - name: Build unsigned iOS simulator app
-        run: flutter build ios --simulator --debug --no-codesign
+        run: |
+          dart_defines=()
+          [[ -n "$BABY_MONITOR_API_ENDPOINT" ]] && dart_defines+=("--dart-define=BABY_MONITOR_API_ENDPOINT=$BABY_MONITOR_API_ENDPOINT")
+          [[ -n "$FIREBASE_API_KEY" ]] && dart_defines+=("--dart-define=FIREBASE_API_KEY=$FIREBASE_API_KEY")
+          [[ -n "$FIREBASE_IOS_APP_ID" ]] && dart_defines+=("--dart-define=FIREBASE_IOS_APP_ID=$FIREBASE_IOS_APP_ID")
+          [[ -n "$FIREBASE_MESSAGING_SENDER_ID" ]] && dart_defines+=("--dart-define=FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID")
+          [[ -n "$FIREBASE_PROJECT_ID" ]] && dart_defines+=("--dart-define=FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID")
+          flutter build ios --simulator --debug --no-codesign "${dart_defines[@]}"
 
       - name: Package simulator app
         run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app baby-monitor-ios-simulator.zip

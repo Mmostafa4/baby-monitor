@@ -1,0 +1,114 @@
+name: Build iOS TestFlight beta
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-testflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    name: Sign and upload iPhone beta
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
+      IOS_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
+      IOS_PROFILE_NAME: ${{ vars.IOS_PROFILE_NAME }}
+      APPSTORE_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
+      APPSTORE_API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      APPSTORE_CERTIFICATES_FILE_BASE64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+      APPSTORE_CERTIFICATES_PASSWORD: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+      BABY_MONITOR_API_ENDPOINT: ${{ vars.BABY_MONITOR_API_ENDPOINT }}
+      FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+      FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+      FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Check required Apple and analysis configuration
+        shell: bash
+        run: |
+          missing=()
+          for name in IOS_BUNDLE_ID IOS_TEAM_ID IOS_PROFILE_NAME APPSTORE_ISSUER_ID APPSTORE_API_KEY_ID BABY_MONITOR_API_ENDPOINT FIREBASE_API_KEY FIREBASE_IOS_APP_ID FIREBASE_MESSAGING_SENDER_ID FIREBASE_PROJECT_ID; do
+            if [[ -z "${!name}" ]]; then missing+=("$name"); fi
+          done
+          for name in APPSTORE_API_PRIVATE_KEY APPSTORE_CERTIFICATES_FILE_BASE64 APPSTORE_CERTIFICATES_PASSWORD; do
+            if [[ -z "${!name}" ]]; then missing+=("$name"); fi
+          done
+          if ((${#missing[@]})); then
+            printf '::error::Missing GitHub Actions configuration: %s\n' "${missing[*]}"
+            exit 1
+          fi
+
+      - name: Confirm experimental model service is ready
+        shell: bash
+        run: |
+          health_url="${BABY_MONITOR_API_ENDPOINT%/v1/cry-analysis}/v1/health"
+          response="$(curl --fail --silent --show-error --retry 8 --retry-delay 10 --retry-connrefused --max-time 20 "$health_url")"
+          printf '%s' "$response" | jq --exit-status '.model_ready == true' >/dev/null
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Import Apple distribution certificate
+        uses: apple-actions/import-codesign-certs@v7
+        with:
+          p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+
+      - name: Download App Store provisioning profile
+        uses: apple-actions/download-provisioning-profiles@v6
+        with:
+          bundle-id: ${{ vars.IOS_BUNDLE_ID }}
+          profile-type: IOS_APP_STORE
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+      - name: Configure iOS signing and privacy text
+        run: python3 scripts/configure_ios.py
+
+      - name: Create TestFlight export options
+        run: python3 scripts/create_ios_export_options.py --output "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Build signed iPhone IPA
+        run: |
+          flutter build ipa --release \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist" \
+            --dart-define="BABY_MONITOR_API_ENDPOINT=$BABY_MONITOR_API_ENDPOINT" \
+            --dart-define="FIREBASE_API_KEY=$FIREBASE_API_KEY" \
+            --dart-define="FIREBASE_IOS_APP_ID=$FIREBASE_IOS_APP_ID" \
+            --dart-define="FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID" \
+            --dart-define="FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID"
+
+      - name: Save signed IPA for testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: baby-monitor-iphone-testflight-${{ github.sha }}
+          path: build/ios/ipa/Runner.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload beta to TestFlight
+        uses: apple-actions/upload-testflight-build@v5
+        with:
+          app-path: build/ios/ipa/Runner.ipa
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          uses-non-exempt-encryption: "false"
