@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'data/vaccine_schedules.dart';
 import 'models/daily_log_entry.dart';
+import 'models/cry_analysis_result.dart';
 import 'services/cry_analysis_client.dart';
 import 'services/cry_analysis_configuration.dart';
 import 'services/cry_recording_service.dart';
