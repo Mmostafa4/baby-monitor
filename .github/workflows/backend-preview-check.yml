@@ -6,10 +6,12 @@ on:
       - codex/mvp-native-integration
     paths:
       - "backend/**"
+      - "Dockerfile"
       - ".github/workflows/backend-preview-check.yml"
   pull_request:
     paths:
       - "backend/**"
+      - "Dockerfile"
       - ".github/workflows/backend-preview-check.yml"
   workflow_dispatch:
 
@@ -43,5 +45,8 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v6
 
-      - name: Build service image
+      - name: Build backend image
         run: docker build --tag baby-monitor-cry-analysis-preview ./backend
+
+      - name: Build Railway root-context image
+        run: docker build --file Dockerfile --tag baby-monitor-cry-analysis-railway .
