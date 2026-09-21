@@ -32,3 +32,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/branding/baby_monitor_logo.svg
+    - assets/branding/baby_monitor_cartoon_icon_512.png
