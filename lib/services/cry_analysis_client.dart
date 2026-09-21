@@ -62,6 +62,7 @@ class CryAnalysisClient {
 
     final category = decoded['category'];
     final advice = decoded['advice'];
+    final scorePercent = decoded['score_percent'];
     final urgent = decoded['urgent'];
     final experimental = decoded['experimental'];
     const categories = {
@@ -76,6 +77,9 @@ class CryAnalysisClient {
         !categories.contains(category) ||
         advice is! String ||
         advice.trim().isEmpty ||
+        scorePercent is! int ||
+        scorePercent < 0 ||
+        scorePercent > 100 ||
         urgent is! bool ||
         experimental != true) {
       throw const CryAnalysisException('استجابة التحليل غير صالحة.');
@@ -84,6 +88,7 @@ class CryAnalysisClient {
     return CryAnalysisResult(
       category: category,
       advice: advice.trim(),
+      scorePercent: scorePercent,
       urgent: urgent,
       experimental: true,
     );
