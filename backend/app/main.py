@@ -46,6 +46,7 @@ _model_error = False
 class AnalysisResponse(BaseModel):
     category: str
     advice: str
+    score_percent: int
     urgent: bool = False
     experimental: bool = True
 
@@ -197,7 +198,7 @@ def _consume_rate_limit(uid: str) -> None:
         _global_requests.append(now)
 
 
-def _classify(frames: bytes) -> str:
+def _classify(frames: bytes) -> tuple[str, int]:
     if _model is None or _processor is None:
         raise HTTPException(status_code=503, detail="Experimental model is unavailable.")
 
@@ -208,7 +209,9 @@ def _classify(frames: bytes) -> str:
     inputs = _processor(samples, sampling_rate=16_000, return_tensors="pt")
     with torch.inference_mode():
         logits = _model(**inputs).logits
-        predicted_id = int(torch.argmax(logits, dim=-1).item())
+        probabilities = torch.softmax(logits[0], dim=-1)
+        predicted_id = int(torch.argmax(probabilities).item())
+        top_score = float(probabilities[predicted_id].item())
 
     labels = _model.config.id2label
     label = labels.get(predicted_id, labels.get(str(predicted_id), ""))
@@ -221,7 +224,9 @@ def _classify(frames: bytes) -> str:
         "tired": "tiredness",
         "tiredness": "tiredness",
     }
-    return categories.get(normalized, "unclear")
+    category = categories.get(normalized)
+    score_percent = min(100, max(0, round(top_score * 100))) if category else 0
+    return category or "unclear", score_percent
 
 
 ADVICE = {
@@ -263,10 +268,11 @@ async def analyze_cry(
         await audio.close()
 
     try:
-        category = await run_in_threadpool(_classify, frames)
+        category, score_percent = await run_in_threadpool(_classify, frames)
         return AnalysisResponse(
             category=category,
             advice=ADVICE[category],
+            score_percent=score_percent,
             urgent=False,
             experimental=True,
         )
