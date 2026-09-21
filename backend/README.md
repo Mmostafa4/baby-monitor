@@ -7,8 +7,8 @@ This directory defines the production boundary for the app. It intentionally doe
 `POST /v1/cry-analysis`
 
 - Authentication: `Authorization: Bearer <short-lived access token>`
-- Multipart field: `audio`
-- Server checks: authenticated user, active trial/subscription, MIME type, max size, mono/16 kHz audio, and duration of exactly 10 seconds (with a small tolerance).
+- Multipart field: `audio` (`audio/wav`, RIFF/WAVE with mono 16 kHz signed 16-bit PCM)
+- Server checks: authenticated user, active trial/subscription, MIME type, maximum size, WAV header and PCM format, and duration of exactly 10 seconds (with a small tolerance).
 - Response is probabilistic and non-diagnostic:
 
 ```json

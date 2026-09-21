@@ -11,6 +11,9 @@ paths:
         required: true
         content:
           multipart/form-data:
+            encoding:
+              audio:
+                contentType: audio/wav
             schema:
               type: object
               required: [audio]
