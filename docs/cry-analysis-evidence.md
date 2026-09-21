@@ -79,3 +79,24 @@
 2. جمع أمثلة كثيرة بموافقة ولي الأمر، من أطفال متعددين وأعمار وأجهزة وبيئات منزلية متنوعة، مع توثيق سياق الرضعة والحفاض والتهدئة بدل الاعتماد على تخمين المساهم وحده.
 3. تقييم النموذج باختبار يترك أطفالًا كاملين خارج التدريب، ثم تجربة مستقلة في المنزل؛ والإبلاغ عن نتائج كل فئة، لا الدقة الإجمالية فقط.
 4. قياس معايرة الثقة على بيانات مستقلة وتفعيل فئة «غير واضح» حين لا يثبت الدليل؛ لا تُعرض درجات Softmax كنسب احتمال. لا يحل أي تحليل صوتي محل تقييم الطبيب أو الاستجابة لعلامات الخطر.
+
+## Additional research review (21 September 2026)
+
+The cry labels below are research categories, not reliable acoustic signatures that a caregiver can identify by ear. A clip that sounds high-pitched, rhythmic, strained, or loud does not prove hunger, colic, pain, or a need for comfort. The same infant's cry changes with age and context, and sound recordings can carry the baby's identity as well as other acoustic information.
+
+| Research set or study | Cry labels studied | What it supports—and what it does not |
+| --- | --- | --- |
+| Donate-a-Cry corpus (457 clips; used by the current preview model) | Hungry, tired, burping, belly pain, discomfort | The source distribution is strongly imbalanced: 382 hunger clips, versus 24 tired, 8 burping, 16 belly-pain, and 27 discomfort clips. Published validation on this small corpus does not establish accuracy for a new child or a phone recording. |
+| EnesBabyCries2 / 2023 home recordings | Hunger, discomfort, isolation | The 2023 study examined 39,201 cries from 24 infants recorded at home. Labels were inferred from caregiver assessments/actions, not medical confirmation. Its authors found that neither listeners nor their machine-learning models reliably recognized cause. |
+| WOCCI 2025 speech-transformer study | Hunger, discomfort, isolation (EnesBabyCries2) | In leave-one-baby-out evaluation, tested representations reached about 41–46% cause accuracy across these three classes (33% chance level). The paper also cautions that cause results on Donate-a-Cry are unreliable because baby identity is not known. This is early research, not a test of this app's model. |
+
+The preview model covers hunger, belly pain, burping, general discomfort, and tiredness. It has no separate label for affection/comfort or distress. The app's 0–100 display is the top softmax output from this model; no independent calibration or clinical validation exists for the app, the 10-second recordings, or new babies. A high displayed score must not be read as a high chance that the suggested cause is true.
+
+For caregivers, use the audio estimate alongside observable cues (feeding, sleep, diaper, temperature, comfort) and the safety guidance in the app. The recording cannot rule out illness. Follow emergency guidance and contact a clinician when concerned.
+
+### Sources
+
+- Hammoud et al., “Machine learning-based infant crying interpretation,” *Frontiers in Artificial Intelligence* (2024): https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2024.1337356/full
+- Orlandi et al., “Infant cries convey both stable and dynamic information about age and identity,” *Communications Psychology* (2023): https://pmc.ncbi.nlm.nih.gov/articles/PMC11332224/
+- Bonafos et al., “Speech transformer models for extracting information from baby cries,” *WOCCI 2025*: https://www.isca-archive.org/wocci_2025/bonafos25_wocci.pdf
+- Current preview model card: https://huggingface.co/AmeerHesham/distilhubert-finetuned-baby_cry
