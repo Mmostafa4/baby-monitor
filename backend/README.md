@@ -4,7 +4,7 @@ This service runs a real open-source audio classifier for a closed test. It is n
 
 ## Model and result meaning
 
-The service downloads the pinned AmeerHesham/distilhubert-finetuned-baby_cry model from Hugging Face when it starts. Its top-ranked output is returned without a numeric confidence score. The score is not calibrated, and the result is only a best-effort guess among the model's labels.
+The service downloads the pinned AmeerHesham/distilhubert-finetuned-baby_cry model from Hugging Face when it starts. It returns the top-ranked category and the corresponding softmax output as `score_percent` (0–100). That number is an uncalibrated model score, not the probability that the baby is hungry, in pain, or has any medical condition. It is not a measured accuracy percentage. The result is a best-effort guess among the model's labels.
 
 The model labels are hunger, belly pain, burping, general discomfort, and tiredness. They do not include a dedicated class for needing affection or for distress. Belly pain is not a diagnosis of colic, burping is not a diagnosis of gas, and tiredness is not a measure of distress. Unknown labels return unclear.
 
@@ -46,6 +46,6 @@ Use the same defines with flutter build ios --release. The app asks for consent 
 ## Endpoints
 
 - GET /v1/health: model readiness only; contains no account or audio data.
-- POST /v1/cry-analysis: authenticated multipart upload using field audio, mono 16 kHz 16-bit PCM WAV, 9.5–10.5 seconds, maximum 400 KB.
+- POST /v1/cry-analysis: authenticated multipart upload using field audio, mono 16 kHz 16-bit PCM WAV, 9.5–10.5 seconds, maximum 400 KB. Returns `category`, `advice`, `score_percent`, and `experimental`.
 
 Run format checks with python -m unittest discover -s tests -v from this directory. GitHub Actions also builds the CPU container image. A successful image build does not prove model accuracy or a deployed service.
