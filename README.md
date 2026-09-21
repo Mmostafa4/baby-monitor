@@ -2,7 +2,7 @@
 
 Arabic-only Flutter MVP for Android, iOS, and the web. The profile screen states that Arabic is the language available in this build; other translations are not selectable yet.
 
-The current published iPhone Safari version is at [mmostafa4.github.io/baby-monitor](https://mmostafa4.github.io/baby-monitor/). This branch is not live. Merging to `main` triggers the repository's existing GitHub Pages deployment.
+The public GitHub Pages preview remains on `main`. This branch adds a separate password-protected Safari web-app beta at Railway; it does not change `main` or publish to either app store. On iPhone, open the private beta URL in Safari, enter the invite code, then choose **Share → Add to Home Screen**. This is an installable web app, not a TestFlight IPA.
 
 ## MVP features
 
@@ -10,7 +10,7 @@ The current published iPhone Safari version is at [mmostafa4.github.io/baby-moni
 - Editable child profile, a daily care log with date navigation and local history, copyable summaries for a caregiver or clinician, and a control to erase local data.
 - Optional GPS consent during setup. Location is requested only after consent, and the Emergency screen shows a check when a location fix succeeds before opening a Google Maps search. Coordinates are not saved by the app.
 - Up to 10 seconds of microphone capture, in-memory playback, and deletion.
-- Optional experimental cry classification: a configured build asks for separate consent before sending audio to an HTTPS backend. It shows the top-ranked category and a 0–100 raw model score. The score is uncalibrated, not an accuracy percentage or medical probability. The model cannot identify a need for comfort or distress. Analysis stays disabled until the HTTPS server and Firebase settings are configured. See [the research and evidence review](docs/cry-analysis-evidence.md), [preview service setup](backend/README.md), and [phone test setup](docs/preview-setup.md).
+- Optional experimental cry classification: a configured build asks for separate consent before sending audio to an HTTPS backend. It shows the top-ranked category and a 0–100 raw model score. The score is uncalibrated, not an accuracy percentage or medical probability. The model cannot identify a need for comfort or distress. The Safari beta signs in with a private invite code and same-origin session; native builds still need Firebase settings. See [the research and evidence review](docs/cry-analysis-evidence.md), [preview service setup](backend/README.md), and [phone test setup](docs/preview-setup.md).
 - Draft age-based vaccination reminders for the countries listed in onboarding, with local completion marks and links to source schedules. These are reminders, not a clinical catch-up plan.
 - A newborn Q&A screen that is disconnected by default. No question is sent in this MVP.
 - Subscription UI is a mockup; no purchase is connected.
