@@ -95,10 +95,10 @@ def _initialize_model() -> None:
 
     try:
         import torch
-        from transformers import AutoModelForAudioClassification, AutoProcessor
+        from transformers import AutoFeatureExtractor, AutoModelForAudioClassification
 
         torch.set_num_threads(max(1, min(4, os.cpu_count() or 1)))
-        _processor = AutoProcessor.from_pretrained(
+        _processor = AutoFeatureExtractor.from_pretrained(
             MODEL_ID, revision=MODEL_REVISION, trust_remote_code=False
         )
         _model = AutoModelForAudioClassification.from_pretrained(
@@ -333,10 +333,13 @@ ADVICE = {
 
 
 @app.get("/v1/health")
-def health() -> dict[str, bool | str]:
+def health(response: Response) -> dict[str, bool | str]:
+    model_ready = _model is not None and _processor is not None
+    if not model_ready:
+        response.status_code = 503
     return {
-        "status": "ok" if not _model_error else "model_unavailable",
-        "model_ready": _model is not None and _processor is not None,
+        "status": "ok" if model_ready and not _model_error else "model_unavailable",
+        "model_ready": model_ready,
     }
 
 
