@@ -20,6 +20,7 @@ import 'services/cry_recording_service.dart';
 import 'services/newborn_assistant_service.dart';
 import 'widgets/baby_monitor_logo.dart';
 import 'widgets/cry_needs_guide.dart';
+import 'widgets/newborn_quick_guide.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1190,8 +1191,13 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
                   const SizedBox(height: 8),
                   Text(result.advice),
                   const SizedBox(height: 10),
+                  Text(
+                    'درجة ترجيح النموذج: ${result.scorePercent}%',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
                   const Text(
-                    'هذا تخمين بين الفئات التي تعلّمها النموذج، وليس نسبة احتمال أو تشخيصًا. لا يتعرّف على طلب الحنان أو الضيق كسبب مستقل، وقد يخطئ مع أي صوت أو طفل.',
+                    'هذه الدرجة ناتجة من ترتيب النموذج وغير معايرة؛ ليست احتمالًا طبيًا أو نسبة دقة مؤكدة. لا يتعرّف النموذج على طلب الحنان أو الضيق كسبب مستقل، وقد يخطئ مع أي صوت أو طفل.',
                   ),
                 ],
               ),
@@ -1525,6 +1531,8 @@ class _ReassureState extends State<Reassure> {
           const Text(
             'سجّلي مؤشرات الرعاية اليومية وشاركيها مع طبيب الأطفال عند الحاجة. تبقى السجلات على هذا الجهاز.',
           ),
+          const SizedBox(height: 12),
+          const NewbornQuickGuide(),
           const SizedBox(height: 12),
           Card(
             child: Row(
