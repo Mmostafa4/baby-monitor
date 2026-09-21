@@ -1997,6 +1997,17 @@ class _EmergencyState extends State<Emergency> {
     if (mounted) setState(() {});
   }
 
+  Uri _hospitalSearchUri({String? coordinates}) {
+    final query = coordinates == null
+        ? 'مستشفى أطفال near me'
+        : 'مستشفى أطفال near $coordinates';
+    return Uri.https(
+      'www.google.com',
+      '/maps/search/',
+      {'api': '1', 'query': query},
+    );
+  }
+
   Future<void> _findNearbyHospital() async {
     final profile = widget.store.profile!;
     if (!profile.locationConsent) {
@@ -2007,10 +2018,16 @@ class _EmergencyState extends State<Emergency> {
       return;
     }
 
-    // Reserve a browser tab during the tap so mobile browsers do not block
-    // opening Maps after the asynchronous GPS permission and location fix.
+    // Safari on iPhone may suspend a PWA after opening a blank tab.
+    // Web navigation uses the current page after GPS resolves instead.
     final mapLaunch = maps_navigation.prepareMapsNavigation();
     var mapOpened = false;
+
+    Future<bool> openHospitalSearch({String? coordinates}) =>
+        maps_navigation.openMapsNavigation(
+          mapLaunch,
+          _hospitalSearchUri(coordinates: coordinates),
+        );
 
     setState(() {
       locating = true;
@@ -2025,19 +2042,27 @@ class _EmergencyState extends State<Emergency> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        setState(() {
-          locationStatus =
-              'إذن GPS غير متاح. اسمحي بالموقع من إعدادات الجهاز أو المتصفح.';
-        });
+        mapOpened = await openHospitalSearch();
+        if (mounted) {
+          setState(() {
+            locationStatus = mapOpened
+                ? 'إذن GPS للتطبيق غير متاح؛ فتحت الخرائط للبحث عن مستشفى أطفال قريب.'
+                : 'إذن الموقع غير متاح. اسمحي بالموقع من إعدادات الجهاز أو المتصفح ثم حاولي مجددًا.';
+          });
+        }
         return;
       }
 
       final enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
-        setState(() {
-          locationStatus =
-              'خدمة الموقع متوقفة في الجهاز. فعّليها ثم حاولي مرة أخرى.';
-        });
+        mapOpened = await openHospitalSearch();
+        if (mounted) {
+          setState(() {
+            locationStatus = mapOpened
+                ? 'خدمة GPS متوقفة؛ فتحت الخرائط للبحث عن مستشفى أطفال قريب.'
+                : 'خدمة الموقع متوقفة. فعّليها ثم حاولي مرة أخرى.';
+          });
+        }
         return;
       }
 
@@ -2056,24 +2081,25 @@ class _EmergencyState extends State<Emergency> {
 
       final coordinates =
           position.latitude.toString() + ',' + position.longitude.toString();
-      final uri = Uri.https(
-        'www.google.com',
-        '/maps/search/',
-        {'api': '1', 'query': 'مستشفى أطفال near ' + coordinates},
-      );
-      mapOpened = await maps_navigation.openMapsNavigation(mapLaunch, uri);
-      if (!mapOpened && mounted) {
+      mapOpened = await openHospitalSearch(coordinates: coordinates);
+      if (!mapOpened) {
+        mapOpened = await openHospitalSearch();
+      }
+      if (mounted) {
         setState(() {
-          locationStatus =
-              'تم تحديد الموقع ✓، لكن تعذر فتح الخرائط على هذا الجهاز.';
+          locationStatus = mapOpened
+              ? 'تم فتح خرائط البحث عن مستشفيات أطفال قريبة.'
+              : 'تم تحديد الموقع، لكن تعذر فتح الخرائط على هذا الجهاز.';
         });
       }
     } catch (_) {
+      mapOpened = await openHospitalSearch();
       if (mounted) {
         setState(() {
           locationResolved = false;
-          locationStatus =
-              'تعذر تحديد الموقع. تحققي من إذن GPS واتصال الجهاز ثم حاولي مجددًا.';
+          locationStatus = mapOpened
+              ? 'تعذر قراءة GPS بدقة؛ فتحت الخرائط للبحث عن مستشفى أطفال قريب.'
+              : 'تعذر تحديد الموقع وفتح الخرائط. تحققي من الإذن واتصال الجهاز ثم حاولي مجددًا.';
         });
       }
     } finally {
