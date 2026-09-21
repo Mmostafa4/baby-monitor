@@ -17,6 +17,9 @@ import 'models/cry_analysis_result.dart';
 import 'services/cry_analysis_client.dart';
 import 'services/cry_analysis_configuration.dart';
 import 'services/cry_recording_service.dart';
+import 'services/maps_navigation_stub.dart'
+    if (dart.library.html) 'services/maps_navigation_web.dart'
+    as maps_navigation;
 import 'services/newborn_assistant_service.dart';
 import 'widgets/baby_monitor_logo.dart';
 import 'widgets/cry_needs_guide.dart';
@@ -456,7 +459,7 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
                   child: Padding(
                     padding: EdgeInsets.all(14),
                     child: Text(
-                      'التطبيق إرشادي ولا يقدم تشخيصًا أو علاجًا. عند ظهور علامة طوارئ، اطلبي الرعاية الطبية فورًا.',
+                      'التطبيق أداة مساعدة عامة، ولا يقدم تشخيصًا أو علاجًا. قد لا تناسب بعض المعلومات حالة كل طفل؛ راجعي طبيب الأطفال للقرارات الصحية، واتصلي بالطوارئ المحلية عند ظهور علامة طارئة.',
                     ),
                   ),
                 ),
@@ -476,7 +479,7 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
                     title: const Text(
                         'أوافق على استخدام موقعي عند طلب مستشفى قريب'),
                     subtitle: const Text(
-                      'سيطلب الجهاز إذن GPS الآن. لن يحفظ التطبيق إحداثياتك أو يرسلها إلى خادمه؛ تُستخدم فقط لفتح الخرائط عند طلبك.',
+                      'سيطلب الجهاز إذن GPS الآن. لا يحفظ التطبيق إحداثياتك أو يرسلها إلى خادمه؛ تُشارك مع الخرائط فقط لعرض المستشفى القريب.',
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
@@ -1420,8 +1423,7 @@ class _ReassureState extends State<Reassure> {
       if (entry.temperatureCelsius != null)
         'درجة الحرارة: ' + entry.temperatureCelsius.toString() + '°م',
       if (entry.notes.trim().isNotEmpty) 'ملاحظات: ' + entry.notes.trim(),
-      'سجل لمتابعة الرعاية، وليس تشخيصًا طبيًا.',
-    ];
+          ];
     try {
       await Clipboard.setData(ClipboardData(text: lines.join('\n')));
       if (mounted) {
@@ -2005,6 +2007,11 @@ class _EmergencyState extends State<Emergency> {
       return;
     }
 
+    // Reserve a browser tab during the tap so mobile browsers do not block
+    // opening Maps after the asynchronous GPS permission and location fix.
+    final mapLaunch = maps_navigation.prepareMapsNavigation();
+    var mapOpened = false;
+
     setState(() {
       locating = true;
       locationResolved = false;
@@ -2044,7 +2051,7 @@ class _EmergencyState extends State<Emergency> {
       if (!mounted) return;
       setState(() {
         locationResolved = true;
-        locationStatus = 'تم تحديد موقعك الآن ✓. سيُستخدم لفتح الخرائط فقط.';
+        locationStatus = 'تم تحديد الموقع. جارٍ فتح خرائط المستشفيات القريبة...';
       });
 
       final coordinates =
@@ -2054,8 +2061,8 @@ class _EmergencyState extends State<Emergency> {
         '/maps/search/',
         {'api': '1', 'query': 'مستشفى أطفال near ' + coordinates},
       );
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened && mounted) {
+      mapOpened = await maps_navigation.openMapsNavigation(mapLaunch, uri);
+      if (!mapOpened && mounted) {
         setState(() {
           locationStatus =
               'تم تحديد الموقع ✓، لكن تعذر فتح الخرائط على هذا الجهاز.';
@@ -2070,6 +2077,7 @@ class _EmergencyState extends State<Emergency> {
         });
       }
     } finally {
+      if (!mapOpened) maps_navigation.cancelMapsNavigation(mapLaunch);
       if (mounted) setState(() => locating = false);
     }
   }
@@ -2136,7 +2144,7 @@ class _EmergencyState extends State<Emergency> {
                   onChanged: locating ? null : _changeLocationConsent,
                   title: const Text('السماح باستخدام GPS عند الطلب'),
                   subtitle: const Text(
-                    'الموقع لا يُحفظ في الملف ولا يُرسل إلى خادم التطبيق.',
+                    'لا يُحفظ الموقع في التطبيق؛ يُشارك مع الخرائط فقط عند الضغط على البحث.',
                   ),
                 ),
                 SizedBox(
@@ -2322,7 +2330,7 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'الموقع والصوت وتاريخ الميلاد لا تُرسل إلى المساعد. إجاباته تثقيفية وليست تشخيصًا؛ وفي الطوارئ استخدمي صفحة الطوارئ.',
+                  'الموقع والصوت وتاريخ الميلاد لا تُرسل إلى المساعد.',
                   style: TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],
