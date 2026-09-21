@@ -6,14 +6,19 @@
 
 ## الخادم وFirebase
 
-1. شغّل حاوية `backend/` على استضافة تملكها، خلف HTTPS، ومن دون مجلد تخزين دائم
-   للتسجيلات. وفّر `FIREBASE_PROJECT_ID` ومفتاح Firebase Admin عبر مدير الأسرار
-   الخاص بالاستضافة. لا ترفع مفتاح الخدمة إلى GitHub أو ترسله في المحادثة.
-2. في Firebase، فعّل تسجيل الدخول المجهول وسجّل تطبيقي Android وiOS بمعرّفاتهما
+1. في مشروع Railway الخاص **Baby Monitor Private Beta** أنشئ خدمة من
+   المستودع `Mmostafa4/baby-monitor` وفرع `codex/mvp-native-integration`.
+   سيبني ملف `Dockerfile` في جذر المستودع خدمة الـbackend. اترك التخزين الدائم
+   غير مفعّل، واضبط فحص الصحة على `/v1/health`.
+2. في متغيرات خدمة Railway أضف `FIREBASE_PROJECT_ID`، وأضف ملف Firebase Admin
+   JSON كاملًا في `FIREBASE_SERVICE_ACCOUNT_JSON` بوصفه Secret. لا تضع المفتاح
+   في GitHub أو ترسله في المحادثة. لن يعمل تسجيل المستخدم والتحليل من دون
+   إعداد بيانات Firebase هذه.
+3. في Firebase، فعّل تسجيل الدخول المجهول وسجّل تطبيقي Android وiOS بمعرّفاتهما
    النهائية. معرّف Android الحالي في APK التجريبي هو `com.example.baby_monitor`؛
    ويتحدد معرّف iOS بواسطة `IOS_BUNDLE_ID`. افحص إعداد الاحتفاظ بالسجلات لدى مزود
    الاستضافة قبل تجربة أي صوت.
-3. أضف القيم العامة التالية في مستودع GitHub من
+4. أضف القيم العامة التالية في مستودع GitHub من
    **Settings → Secrets and variables → Actions → Variables**:
 
    | المتغير | القيمة |

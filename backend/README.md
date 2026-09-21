@@ -29,7 +29,7 @@ Requirements: Docker with Compose, an internet connection for the initial model 
 
 1. In Firebase Console, enable Authentication → Anonymous and register the Android and iOS app identifiers.
 2. Copy .env.example to .env and set FIREBASE_PROJECT_ID.
-3. Place the Firebase Admin JSON key at backend/secrets/firebase-service-account.json. Keep this file private; backend/.gitignore excludes it.
+3. For local Docker Compose, place the Firebase Admin JSON key at backend/secrets/firebase-service-account.json. For Railway, set the full Admin JSON in the FIREBASE_SERVICE_ACCOUNT_JSON service variable and mark it as a secret. Never commit or send the key.
 4. From backend/, run docker compose up --build. Model loading may take several minutes. The container listens only on 127.0.0.1:8000.
 5. Check http://127.0.0.1:8000/v1/health. A local HTTP endpoint is for health inspection only; the mobile app refuses to upload to anything except HTTPS.
 

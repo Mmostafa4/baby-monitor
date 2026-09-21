@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import json
 import logging
 import os
 import threading
@@ -30,6 +31,7 @@ MODEL_REVISION = os.getenv(
 )
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
 FIREBASE_SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH", "").strip()
+FIREBASE_SERVICE_ACCOUNT_JSON = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
 
 MAX_REQUESTS_PER_USER_PER_HOUR = 20
 MAX_REQUESTS_GLOBAL_PER_HOUR = 100
@@ -118,6 +120,14 @@ def _firebase_app():
 
     if FIREBASE_SERVICE_ACCOUNT_PATH:
         credential = credentials.Certificate(FIREBASE_SERVICE_ACCOUNT_PATH)
+    elif FIREBASE_SERVICE_ACCOUNT_JSON:
+        try:
+            credential = credentials.Certificate(json.loads(FIREBASE_SERVICE_ACCOUNT_JSON))
+        except (json.JSONDecodeError, ValueError, TypeError) as error:
+            logger.error("Firebase Admin secret is not valid JSON credentials.")
+            raise HTTPException(
+                status_code=503, detail="Authentication is not configured."
+            ) from error
     else:
         credential = credentials.ApplicationDefault()
 
