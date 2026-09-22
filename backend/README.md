@@ -1,6 +1,6 @@
 # Experimental cry-analysis preview
 
-This service runs a real open-source audio classifier for a closed test. It is not a medical device, has not been validated on new babies or home recordings, and is not ready for public release. The repository does not contain a deployed service URL or Firebase project configuration; without those build values, the app keeps analysis disabled.
+This service runs a real open-source audio classifier for a closed test and can optionally proxy a protected Arabic newborn Q&A request to an OpenAI-compatible text-model endpoint. It is not a medical device, has not been validated on new babies or home recordings, and is not ready for public release. The repository does not contain a deployed service URL, Firebase project configuration, or text-model credentials; without those build values, the app keeps the relevant feature disabled.
 
 ## Model and result meaning
 
@@ -21,6 +21,7 @@ See [MODEL_NOTICE.md](MODEL_NOTICE.md) for model and training-data notices. The 
 - The container has no persistent volume. Its /tmp is a memory-backed filesystem for temporary model downloads. A hosting provider or TLS proxy may still retain ordinary connection metadata; review its terms before sending real recordings.
 - The app erases its in-memory recording after an analysis attempt. The server returns urgent=false; it does not detect emergencies.
 - In-memory limits are 20 requests per Firebase user and 100 requests total per hour per service process. These reset when the process restarts and are not production-grade billing protection.
+- Newborn Q&A accepts at most 900 characters, does not persist the question or answer, and uses a server-side provider key. Obvious emergency and medication-dose questions are answered by a fixed safety response before any provider call. The endpoint is still educational and requires medical/privacy review.
 - There is no subscription or trial entitlement check. Do not expose this preview publicly or use it for paid access.
 
 ## Private iPhone Safari beta
@@ -35,8 +36,9 @@ Requirements: Docker with Compose and an internet connection for the initial mod
 
 1. Copy .env.example to .env. Set `BETA_ACCESS_KEY` to a long random invite code for a private web test. Keep the real value out of Git.
 2. If testing native builds, also set `FIREBASE_PROJECT_ID` and configure Firebase anonymous sign-in. Store the Firebase Admin JSON key at `backend/secrets/firebase-service-account.json` locally, or as a Railway secret named `FIREBASE_SERVICE_ACCOUNT_JSON`. Never commit or send the key.
-3. From backend/, run `docker compose up --build`. Model loading may take several minutes.
-4. Check `http://127.0.0.1:8000/v1/health`. The private app requires HTTPS because microphone recording and location access are browser secure-context features.
+3. To enable newborn Q&A, set `BABY_MONITOR_AI_API_URL`, `BABY_MONITOR_AI_API_KEY`, and `BABY_MONITOR_AI_MODEL` in the host secret manager. The URL must be HTTPS and accept an OpenAI-compatible chat-completions JSON request.
+4. From backend/, run `docker compose up --build`. Model loading may take several minutes.
+5. Check `http://127.0.0.1:8000/v1/health`. The private app requires HTTPS because microphone recording and location access are browser secure-context features.
 
 The container needs enough memory for PyTorch and the model; allow at least 2 GB RAM for a CPU preview. For phone testing, deploy it behind an HTTPS reverse proxy and review the hosting provider's data-retention settings first. No backend has been deployed for this repository yet.
 
@@ -44,7 +46,7 @@ The container needs enough memory for PyTorch and the model; allow at least 2 GB
 
 Use the public Firebase app values from the Firebase project and the HTTPS URL of the deployed endpoint. Each platform needs its own Firebase app ID. These values identify the Firebase app and are not the Firebase Admin service-account key. For GitHub Actions phone builds, add the variables listed in [preview setup](../docs/preview-setup.md).
 
-    flutter build apk --release --dart-define=BABY_MONITOR_API_ENDPOINT=https://YOUR-HOST/v1/cry-analysis --dart-define=FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY --dart-define=FIREBASE_ANDROID_APP_ID=YOUR_ANDROID_FIREBASE_APP_ID --dart-define=FIREBASE_IOS_APP_ID=YOUR_IOS_FIREBASE_APP_ID --dart-define=FIREBASE_MESSAGING_SENDER_ID=YOUR_FIREBASE_SENDER_ID --dart-define=FIREBASE_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID
+    flutter build apk --release --dart-define=BABY_MONITOR_API_ENDPOINT=https://YOUR-HOST/v1/cry-analysis --dart-define=BABY_MONITOR_AI_ENDPOINT=https://YOUR-HOST/v1/newborn-assistant --dart-define=FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY --dart-define=FIREBASE_ANDROID_APP_ID=YOUR_ANDROID_FIREBASE_APP_ID --dart-define=FIREBASE_IOS_APP_ID=YOUR_IOS_FIREBASE_APP_ID --dart-define=FIREBASE_MESSAGING_SENDER_ID=YOUR_FIREBASE_SENDER_ID --dart-define=FIREBASE_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID
 
 Use the same defines with flutter build ios --release. The app asks for consent separately before each upload. With any required configuration missing, recording/playback/deletion still work and analysis stays disabled.
 
@@ -52,5 +54,6 @@ Use the same defines with flutter build ios --release. The app asks for consent 
 
 - GET /v1/health: model readiness only; contains no account or audio data.
 - POST /v1/cry-analysis: authenticated multipart upload using field audio, mono 16 kHz 16-bit PCM WAV, 9.5–10.5 seconds, maximum 400 KB. Returns `category`, `advice`, `score_percent`, and `experimental`.
+- POST /v1/newborn-assistant: authenticated JSON with a `question` of 3–900 characters. Returns a general Arabic `answer`; it does not receive the local child profile or audio.
 
 Run format checks with python -m unittest discover -s tests -v from this directory. GitHub Actions also builds the CPU container image. A successful image build does not prove model accuracy or a deployed service.

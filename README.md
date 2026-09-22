@@ -12,7 +12,8 @@ The public GitHub Pages preview remains on `main`. This branch adds a separate p
 - Up to 10 seconds of microphone capture, in-memory playback, and deletion.
 - Optional experimental cry classification: a configured build asks for separate consent before sending audio to an HTTPS backend. It shows the top-ranked category and a 0–100 raw model score. The score is uncalibrated, not an accuracy percentage or medical probability. The model cannot identify a need for comfort or distress. The Safari beta signs in with a private invite code and same-origin session; native builds still need Firebase settings. See [the research and evidence review](docs/cry-analysis-evidence.md), [preview service setup](backend/README.md), and [phone test setup](docs/preview-setup.md).
 - Draft age-based vaccination reminders for the countries listed in onboarding, with local completion marks and links to source schedules. These are reminders, not a clinical catch-up plan.
-- A newborn Q&A screen that is disconnected by default. No question is sent in this MVP.
+- A weekly newborn-development guide based on the child's local date of birth, with CDC source links. It is an age-based educational prompt, not a milestone test.
+- An optional newborn Q&A screen. It can call a protected HTTPS backend with an OpenAI-compatible text-model provider; the default build sends no question until that service is configured.
 - Subscription UI is a mockup; no purchase is connected.
 
 ## Device permissions

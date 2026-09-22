@@ -21,6 +21,13 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from app.audio import MAX_UPLOAD_BYTES, InvalidAudio, parse_mono_pcm16_wav
+from app.assistant import (
+    AssistantProviderError,
+    AssistantRateLimited,
+    AssistantUnavailable,
+    generate_answer,
+    validate_question,
+)
 from app.request_limits import MaxRequestBodySize
 
 
@@ -53,6 +60,7 @@ WEB_DIR = os.getenv("BABY_MONITOR_WEB_DIR", "/srv/baby-monitor/web")
 MAX_REQUESTS_PER_USER_PER_HOUR = 20
 MAX_REQUESTS_GLOBAL_PER_HOUR = 100
 MAX_REQUEST_BODY_BYTES = MAX_UPLOAD_BYTES + 64 * 1024
+MAX_ASSISTANT_REQUEST_BODY_BYTES = 64 * 1024
 
 _bearer = HTTPBearer(auto_error=False)
 _model: Any | None = None
@@ -70,6 +78,14 @@ class AnalysisResponse(BaseModel):
 
 class BetaSessionRequest(BaseModel):
     access_code: str
+
+
+class AssistantRequest(BaseModel):
+    question: str
+
+
+class AssistantResponse(BaseModel):
+    answer: str
 
 
 @dataclass
@@ -134,6 +150,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_middleware(MaxRequestBodySize, max_bytes=MAX_REQUEST_BODY_BYTES)
+app.add_middleware(
+    MaxRequestBodySize,
+    max_bytes=MAX_ASSISTANT_REQUEST_BODY_BYTES,
+    paths={"/v1/newborn-assistant"},
+)
 
 
 @app.middleware("http")
@@ -343,11 +364,49 @@ def health(response: Response) -> dict[str, bool | str]:
     }
 
 
+@app.post("/v1/newborn-assistant", response_model=AssistantResponse)
+async def newborn_assistant(
+    payload: AssistantRequest,
+    response: Response,
+    uid: str = Depends(authenticated_user),
+) -> AssistantResponse:
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        question = validate_question(payload.question)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    _consume_rate_limit("assistant:" + uid)
+
+    try:
+        answer = await generate_answer(question)
+    except AssistantUnavailable as error:
+        raise HTTPException(
+            status_code=503,
+            detail="The newborn assistant is not configured.",
+        ) from error
+    except AssistantRateLimited as error:
+        raise HTTPException(
+            status_code=429,
+            detail="The newborn assistant is temporarily busy.",
+        ) from error
+    except AssistantProviderError as error:
+        # Do not log the question or model response; both can contain private data.
+        logger.warning("Newborn assistant provider failed: %s", type(error).__name__)
+        raise HTTPException(
+            status_code=503,
+            detail="The newborn assistant is temporarily unavailable.",
+        ) from error
+
+    return AssistantResponse(answer=answer)
+
+
 @app.post("/v1/cry-analysis", response_model=AnalysisResponse)
 async def analyze_cry(
+    response: Response,
     audio: UploadFile = File(...),
     uid: str = Depends(authenticated_user),
 ) -> AnalysisResponse:
+    response.headers["Cache-Control"] = "no-store"
     _consume_rate_limit(uid)
 
     content_type = (audio.content_type or "").lower().split(";", maxsplit=1)[0]

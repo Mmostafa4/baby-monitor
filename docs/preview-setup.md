@@ -39,11 +39,18 @@ Firebase، أما بناء iOS الأصلي فيحتاج إعداد Firebase. ا
    | المتغير | القيمة |
    | --- | --- |
    | `BABY_MONITOR_API_ENDPOINT` | عنوان HTTPS الكامل وينتهي بـ `/v1/cry-analysis` |
+   | `BABY_MONITOR_AI_ENDPOINT` | عنوان HTTPS الكامل وينتهي بـ `/v1/newborn-assistant` (اختياري حتى إعداد المساعد) |
    | `FIREBASE_API_KEY` | مفتاح تطبيق Firebase العام |
    | `FIREBASE_ANDROID_APP_ID` | معرّف تطبيق Android في Firebase |
    | `FIREBASE_IOS_APP_ID` | معرّف تطبيق iOS في Firebase |
    | `FIREBASE_MESSAGING_SENDER_ID` | معرّف المرسل في Firebase |
    | `FIREBASE_PROJECT_ID` | معرّف مشروع Firebase |
+
+   ولتفعيل المساعد الذكي على الخادم، اضبطي `BABY_MONITOR_AI_API_URL` و
+   `BABY_MONITOR_AI_API_KEY` و`BABY_MONITOR_AI_MODEL` كمتغيرات/أسرار للخدمة فقط.
+   يجب أن يكون العنوان HTTPS لنقطة متوافقة مع OpenAI Chat Completions؛ لا يصل
+   المفتاح إلى Flutter. يعترض الخادم أسئلة الطوارئ وأسئلة جرعات الأدوية الواضحة
+   قبل الاتصال بالمزوّد، لكن ذلك لا يغني عن المراجعة الطبية.
 
 ## تثبيت النسخة على iPhone عبر TestFlight
 
@@ -80,6 +87,7 @@ always `internal`; this workflow cannot publish to the public production track.
    `ANDROID_UPLOAD_KEY_ALIAS`, and `ANDROID_UPLOAD_KEY_PASSWORD`. Keep the
    keystore and passwords private; do not commit them or send them in chat.
 3. Add the variables `ANDROID_APPLICATION_ID`, `BABY_MONITOR_API_ENDPOINT`,
+   optionally `BABY_MONITOR_AI_ENDPOINT`,
    `FIREBASE_API_KEY`, `FIREBASE_ANDROID_APP_ID`,
    `FIREBASE_MESSAGING_SENDER_ID`, and `FIREBASE_PROJECT_ID`. The endpoint
    must be HTTPS and end in `/v1/cry-analysis`.

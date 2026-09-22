@@ -24,6 +24,7 @@ import 'services/newborn_assistant_service.dart';
 import 'widgets/baby_monitor_logo.dart';
 import 'widgets/cry_needs_guide.dart';
 import 'widgets/newborn_quick_guide.dart';
+import 'widgets/weekly_development_guide.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1536,6 +1537,8 @@ class _ReassureState extends State<Reassure> {
           const SizedBox(height: 12),
           const NewbornQuickGuide(),
           const SizedBox(height: 12),
+          WeeklyDevelopmentGuide(dateOfBirth: profile.dob),
+          const SizedBox(height: 12),
           Card(
             child: Row(
               children: [
@@ -2285,10 +2288,11 @@ class NewbornAssistant extends StatefulWidget {
 }
 
 class _NewbornAssistantState extends State<NewbornAssistant> {
-  final NewbornAssistantService service = const NewbornAssistantService();
+  final NewbornAssistantService service = NewbornAssistantService();
   final TextEditingController question = TextEditingController();
   final List<_AssistantMessage> messages = <_AssistantMessage>[];
   bool sending = false;
+  bool assistantConsent = false;
   String? error;
 
   @override
@@ -2307,6 +2311,30 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
             'المساعد الذكي غير متصل في هذه النسخة؛ لم يُرسل سؤالك. يحتاج التطبيق إلى خدمة آمنة على الخادم قبل تفعيله.';
       });
       return;
+    }
+
+    if (!assistantConsent) {
+      final consent = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إرسال السؤال للمساعد؟'),
+          content: const Text(
+            'سيُرسل نص سؤالك فقط عبر HTTPS إلى خادم المساعد، وقد يعالجه مزوّد نموذج نصي لإعداد إجابة عامة. لا تكتبي اسم الطفل أو عنوانك أو رقم هاتفك أو أي بيانات تعريفية. لا يُرسل الصوت أو الموقع أو ملف الطفل. المساعد لا يشخّص ولا يصف جرعات أدوية.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('أوافق لهذه الجلسة'),
+            ),
+          ],
+        ),
+      );
+      if (consent != true || !mounted) return;
+      assistantConsent = true;
     }
 
     setState(() {
@@ -2351,12 +2379,12 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
                 const SizedBox(height: 6),
                 Text(
                   service.isConfigured
-                      ? 'المساعد متصل. اكتبي سؤالًا عامًا دون اسم الطفل أو بيانات تعريفية.'
+                      ? 'نقطة المساعد الآمنة متاحة للإرسال. اكتبي سؤالًا عامًا دون اسم الطفل أو بيانات تعريفية؛ إذا لم تُجهّز خدمة النموذج سيظهر تنبيه.'
                       : 'المساعد الذكي غير متصل بعد. إعداد الخادم ومفتاح الخدمة غير موجودين؛ لن يُرسل السؤال حتى يتم الإعداد.',
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'الموقع والصوت وتاريخ الميلاد لا تُرسل إلى المساعد.',
+                  'السؤال يُرسل فقط بعد موافقتك. الموقع والصوت وتاريخ الميلاد لا تُرسل إلى المساعد.',
                   style: TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],

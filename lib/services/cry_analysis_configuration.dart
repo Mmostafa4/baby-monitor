@@ -103,6 +103,10 @@ class CryAnalysisConfiguration {
     }
   }
 
+  /// Returns the short-lived session token used by authenticated preview APIs.
+  /// The Safari beta uses its same-origin HTTP-only cookie instead.
+  static Future<String?> getSessionToken() => _getAccessToken();
+
   static CryAnalysisClient? createClient() {
     final uri = endpoint;
     if (uri == null || (!kIsWeb && !_firebaseInitialized)) return null;

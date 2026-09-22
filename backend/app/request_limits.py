@@ -17,16 +17,23 @@ ASGIApp = Callable[
 class MaxRequestBodySize:
     """Buffer small preview uploads in memory and reject oversized bodies early."""
 
-    def __init__(self, app: ASGIApp, max_bytes: int, max_concurrent: int = 2) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        max_bytes: int,
+        max_concurrent: int = 2,
+        paths: set[str] | None = None,
+    ) -> None:
         self.app = app
         self.max_bytes = max_bytes
         self.upload_slots = asyncio.Semaphore(max_concurrent)
+        self.paths = paths or {"/v1/cry-analysis"}
 
     async def __call__(self, scope, receive, send) -> None:
         if (
             scope.get("type") != "http"
             or scope.get("method") != "POST"
-            or scope.get("path") != "/v1/cry-analysis"
+            or scope.get("path") not in self.paths
         ):
             await self.app(scope, receive, send)
             return

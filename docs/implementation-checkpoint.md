@@ -9,14 +9,15 @@
 - Ten-second microphone capture with a captured-byte check and short-lived in-memory playback. The parent can delete it without uploading.
 - An optional experimental cry-analysis client and CPU backend. A separate confirmation is required for each upload; the backend does not persist the audio and does not return a numeric confidence.
 - Age-based vaccine reminder tables for the countries in onboarding, local completion checkboxes, and source links.
-- Emergency guidance and a newborn Q&A screen that clearly reports it is not connected.
+- A local weekly newborn-development guide selected from the child's date of birth, with CDC links and no milestone diagnosis.
+- Emergency guidance and an optional newborn Q&A screen that shows whether its protected service is configured.
 - Android/iOS scaffold with microphone and foreground location declarations.
 - GitHub Actions build paths for a sideloadable Android test APK and unsigned iOS simulator app; a manually started, signed TestFlight beta path is prepared for accounts that have Apple signing and App Store Connect credentials.
 
 ## Deliberately unavailable
 
 - A live cry-analysis result is disabled until Firebase and an HTTPS backend are configured at build time. The repository contains a real, runnable experimental model service, but it is not deployed or clinically validated. The preview does not recognize a need for comfort or distress.
-- Newborn Q&A: no endpoint is configured, so questions are not sent.
+- Newborn Q&A: the protected endpoint and provider adapter are implemented, but no provider key or endpoint is configured in the repository, so questions remain blocked by default.
 - Payments, trials, subscription entitlement checks, and public backend hosting.
 - Push notifications for vaccine due dates and additional UI translations.
 

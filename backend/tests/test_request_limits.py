@@ -5,7 +5,15 @@ from app.request_limits import MaxRequestBodySize
 
 
 class RequestBodyTooLargeTests(unittest.TestCase):
-    def run_asgi(self, *, chunks, max_bytes, content_length=None):
+    def run_asgi(
+        self,
+        *,
+        chunks,
+        max_bytes,
+        content_length=None,
+        path="/v1/cry-analysis",
+        paths=None,
+    ):
         events = []
         app_called = False
         messages = [
@@ -38,9 +46,10 @@ class RequestBodyTooLargeTests(unittest.TestCase):
         headers = []
         if content_length is not None:
             headers.append((b"content-length", str(content_length).encode("ascii")))
-        scope = {"type": "http", "method": "POST", "path": "/v1/cry-analysis", "headers": headers}
+        scope = {"type": "http", "method": "POST", "path": path, "headers": headers}
 
-        asyncio.run(MaxRequestBodySize(app, max_bytes)(scope, receive, send))
+        middleware = MaxRequestBodySize(app, max_bytes, paths=paths)
+        asyncio.run(middleware(scope, receive, send))
         return events, app_called
 
     def test_rejects_declared_oversized_body_before_calling_app(self):
@@ -60,6 +69,16 @@ class RequestBodyTooLargeTests(unittest.TestCase):
         self.assertEqual(events[0]["status"], 200)
         self.assertEqual(events[1]["body"], b"1234")
         self.assertTrue(app_called)
+
+    def test_can_protect_a_second_json_endpoint(self):
+        events, app_called = self.run_asgi(
+            chunks=[b"12345"],
+            max_bytes=4,
+            path="/v1/newborn-assistant",
+            paths={"/v1/newborn-assistant"},
+        )
+        self.assertEqual(events[0]["status"], 413)
+        self.assertFalse(app_called)
 
 
 if __name__ == "__main__":

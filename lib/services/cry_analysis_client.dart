@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../models/cry_analysis_result.dart';
+import 'preview_http_client.dart';
 
 /// Client for the experimental preview API. Never put a service secret in Flutter.
 class CryAnalysisClient {
@@ -42,10 +43,9 @@ class CryAnalysisClient {
         ),
       );
 
-    final response = await request.send().timeout(const Duration(seconds: 90));
-    final body = await response.stream
-        .bytesToString()
-        .timeout(const Duration(seconds: 10));
+    final response = await sendMultipart(request)
+        .timeout(const Duration(seconds: 90));
+    final body = response.body;
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw CryAnalysisException(_messageForStatus(response.statusCode));
     }

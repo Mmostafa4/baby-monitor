@@ -40,6 +40,27 @@ paths:
         '415': {description: Unsupported media type}
         '429': {description: Preview rate limit reached}
         '503': {description: Authentication or model is not available}
+  /v1/newborn-assistant:
+    post:
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssistantRequest'
+      responses:
+        '200':
+          description: General Arabic newborn-care guidance from the configured text model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantResponse'
+        '400': {description: Empty, invalid, or oversized question}
+        '401': {description: Missing or invalid preview authentication}
+        '429': {description: Preview or model-provider rate limit reached}
+        '503': {description: Text-model service is not configured or unavailable}
 components:
   securitySchemes:
     bearerAuth:
@@ -48,7 +69,7 @@ components:
   schemas:
     AnalysisResult:
       type: object
-      required: [category, advice, urgent, experimental]
+      required: [category, advice, score_percent, urgent, experimental]
       properties:
         category:
           type: string
@@ -60,3 +81,17 @@ components:
         experimental:
           type: boolean
           enum: [true]
+    AssistantRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+          minLength: 3
+          maxLength: 900
+    AssistantResponse:
+      type: object
+      required: [answer]
+      properties:
+        answer:
+          type: string
