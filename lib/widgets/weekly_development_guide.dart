@@ -105,7 +105,7 @@ class WeeklyDevelopmentGuide extends StatelessWidget {
     final displayedWeek = week + 1;
 
     return Card(
-      color: const Color(0xffeef8ed),
+      color: Theme.of(context).colorScheme.secondaryContainer,
       child: ExpansionTile(
         leading: const Icon(Icons.calendar_view_week_outlined),
         title: const Text('المتابعة الأسبوعية'),

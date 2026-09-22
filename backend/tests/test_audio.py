@@ -1,4 +1,5 @@
 from io import BytesIO
+import struct
 import wave
 import unittest
 
@@ -11,8 +12,14 @@ def make_wav(
     frames_count: int = 160_000,
     channels: int = 1,
     sample_width: int = 2,
+    sample_value: int = 0,
 ) -> bytes:
-    frame_data = bytes(frames_count * channels * sample_width)
+    if sample_width == 2:
+        frame_data = struct.pack(
+            "<h", sample_value
+        ) * (frames_count * channels)
+    else:
+        frame_data = bytes(frames_count * channels * sample_width)
     output = BytesIO()
     with wave.open(output, "wb") as audio:
         audio.setnchannels(channels)
@@ -24,9 +31,13 @@ def make_wav(
 
 class ParseMonoPcm16WavTests(unittest.TestCase):
     def test_accepts_ten_seconds_of_mono_pcm16_at_sixteen_khz(self) -> None:
-        data = make_wav()
+        data = make_wav(sample_value=2_000)
         frames = parse_mono_pcm16_wav(data)
         self.assertEqual(len(frames), 160_000 * 2)
+
+    def test_rejects_silent_audio_before_model_inference(self) -> None:
+        with self.assertRaisesRegex(InvalidAudio, "No clear audio signal"):
+            parse_mono_pcm16_wav(make_wav())
 
     def test_rejects_unsupported_sample_rate(self) -> None:
         with self.assertRaisesRegex(InvalidAudio, "16 kHz"):

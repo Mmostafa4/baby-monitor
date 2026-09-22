@@ -7,7 +7,7 @@ class NewbornQuickGuide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        color: const Color(0xffedf6ff),
+        color: Theme.of(context).colorScheme.secondaryContainer,
         child: ExpansionTile(
           leading: const Icon(Icons.favorite_outline),
           title: const Text('معلومات عامة لطمأنتك'),
@@ -34,6 +34,13 @@ class NewbornQuickGuide extends StatelessWidget {
               body: 'ضعي الطفل على ظهره في كل مرة ينام فيها، على سطح ثابت ومستوٍ ومخصص للنوم، مع ملاءة مشدودة ومن دون مخدات أو بطانيات رخوة أو ألعاب. مشاركة الغرفة لا تعني مشاركة السرير.',
               sourceLabel: 'CDC: النوم الآمن للرضع',
               sourceUrl: 'https://www.cdc.gov/sudden-infant-death/sleep-safely/index.html',
+            ),
+            _tip(
+              icon: Icons.favorite_border,
+              title: 'المؤشرات الحيوية',
+              body: 'التطبيق لا يقيس الحرارة أو النبض أو تشبع الأكسجين أو معدل التنفس من صوت البكاء. استخدمي ترمومترًا أو جهازًا مناسبًا حسب إرشاد الطبيب، وسجّلي القياس في المتابعة اليومية بدل الاعتماد على تحليل الصوت.',
+              sourceLabel: 'WHO: علامات الخطر عند حديثي الولادة',
+              sourceUrl: 'https://www.who.int/news-room/fact-sheets/detail/newborn-mortality',
             ),
             const Padding(
               padding: EdgeInsetsDirectional.fromSTEB(12, 8, 12, 0),

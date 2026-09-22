@@ -49,7 +49,7 @@ class CryNeedsGuide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        color: const Color(0xfffff5d8),
+        color: Theme.of(context).colorScheme.secondaryContainer,
         child: ExpansionTile(
           leading: const Icon(Icons.checklist),
           title: const Text('مراجعة احتياجات الطفل'),

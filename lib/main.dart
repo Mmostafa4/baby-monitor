@@ -32,6 +32,46 @@ Future<void> main() async {
   runApp(const BabyMonitorApp());
 }
 
+ThemeData themeForGender(String? gender) {
+  final isGirl = gender == 'بنت';
+  final isBoy = gender == 'ولد';
+  final seedColor = isGirl
+      ? const Color(0xffe982aa)
+      : isBoy
+          ? const Color(0xff78b8e8)
+          : const Color(0xff9b8ac5);
+  final backgroundColor = isGirl
+      ? const Color(0xfffff6fa)
+      : isBoy
+          ? const Color(0xfff3faff)
+          : const Color(0xfffaf8fc);
+  final surfaceColor = isGirl
+      ? const Color(0xffffeaf2)
+      : isBoy
+          ? const Color(0xffe7f4ff)
+          : const Color(0xfff0ecf7);
+  final colorScheme = ColorScheme.fromSeed(seedColor: seedColor);
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: backgroundColor,
+    appBarTheme: AppBarTheme(
+      backgroundColor: surfaceColor,
+      foregroundColor: colorScheme.onSurface,
+      elevation: 0,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: surfaceColor,
+      indicatorColor: colorScheme.secondaryContainer,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surfaceColor.withAlpha(130),
+    ),
+  );
+}
+
 class BabyMonitorApp extends StatefulWidget {
   const BabyMonitorApp({super.key});
 
@@ -45,54 +85,65 @@ class _BabyMonitorAppState extends State<BabyMonitorApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Baby Monitor',
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.pink,
-        scaffoldBackgroundColor: const Color(0xfffdfbff),
-      ),
-      home: FutureBuilder<void>(
-        future: startup,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasError) {
-            return const Scaffold(
-              body: Center(
-                  child: Text('تعذر فتح بيانات التطبيق على هذا الجهاز.')),
-            );
-          }
-          return store.profile == null
-              ? ConsentAndProfile(
-                  store: store,
-                  onSaved: () => setState(() {}),
-                )
-              : Home(
-                  store: store,
-                  onLocalDataDeleted: () => setState(() {}),
-                );
-        },
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Baby Monitor',
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        theme: themeForGender(store.activeGender),
+        home: FutureBuilder<void>(
+          future: startup,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return const Scaffold(
+                body: Center(
+                    child: Text('تعذر فتح بيانات التطبيق على هذا الجهاز.')),
+              );
+            }
+            final needsProfileSetup =
+                store.profile == null || store.profile!.gender == null;
+            return needsProfileSetup
+                ? ConsentAndProfile(
+                    store: store,
+                    editMode: store.profile != null,
+                    onSaved: () => setState(() {}),
+                  )
+                : Home(
+                    store: store,
+                    onLocalDataDeleted: () => setState(() {}),
+                  );
+          },
+        ),
       ),
     );
   }
 }
 
-class AppStore {
+class AppStore extends ChangeNotifier {
   ChildProfile? profile;
+  String? draftGender;
   final Set<String> completedVaccineIds = <String>{};
   final Map<String, DailyLogEntry> dailyLogs = <String, DailyLogEntry>{};
+
+  String? get activeGender => draftGender ?? profile?.gender;
+
+  void setDraftGender(String? value) {
+    if (draftGender == value) return;
+    draftGender = value;
+    notifyListeners();
+  }
 
   Future<void> load() async {
     final preferences = await SharedPreferences.getInstance();
@@ -127,12 +178,15 @@ class AppStore {
         await preferences.remove('daily_logs');
       }
     }
+    notifyListeners();
   }
 
   Future<void> save(ChildProfile value) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString('profile', value.toJson());
     profile = value;
+    draftGender = null;
+    notifyListeners();
   }
 
   Future<void> saveLocationConsent(bool value) async {
@@ -182,9 +236,11 @@ class AppStore {
     await preferences.remove('completed_vaccines');
     await preferences.remove('daily_logs');
     profile = null;
+    draftGender = null;
     completedVaccineIds.clear();
     dailyLogs.clear();
     await CryAnalysisConfiguration.deleteAnonymousUser();
+    notifyListeners();
   }
 }
 
@@ -195,6 +251,7 @@ class ChildProfile {
   final String country;
   final String language;
   final DateTime dob;
+  final String? gender;
   final bool locationConsent;
 
   const ChildProfile({
@@ -204,16 +261,18 @@ class ChildProfile {
     required this.country,
     required this.language,
     required this.dob,
+    this.gender,
     this.locationConsent = false,
   });
 
-  ChildProfile copyWith({bool? locationConsent}) => ChildProfile(
+  ChildProfile copyWith({String? gender, bool? locationConsent}) => ChildProfile(
         baby: baby,
         mother: mother,
         father: father,
         country: country,
         language: language,
         dob: dob,
+        gender: gender ?? this.gender,
         locationConsent: locationConsent ?? this.locationConsent,
       );
 
@@ -224,6 +283,7 @@ class ChildProfile {
         'country': country,
         'language': language,
         'dob': dob.toIso8601String(),
+        'gender': gender,
         'locationConsent': locationConsent,
       });
 
@@ -237,6 +297,7 @@ class ChildProfile {
         final country = decoded['country'];
         final language = decoded['language'];
         final dob = decoded['dob'];
+        final savedGender = decoded['gender'];
         final locationConsent = decoded['locationConsent'];
 
         if (baby is String &&
@@ -252,6 +313,10 @@ class ChildProfile {
             country: country,
             language: language,
             dob: DateTime.parse(dob),
+            gender: savedGender is String &&
+                    (savedGender == 'بنت' || savedGender == 'ولد')
+                ? savedGender
+                : null,
             locationConsent: locationConsent == true,
           );
         }
@@ -314,6 +379,7 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
   final TextEditingController father = TextEditingController();
 
   String country = 'مصر';
+  String? gender;
   DateTime dob = DateTime.now();
   bool acceptedMedicalNotice = false;
   bool locationConsent = false;
@@ -329,6 +395,7 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
     mother.text = existing.mother;
     father.text = existing.father;
     country = existing.country;
+    gender = existing.gender;
     dob = existing.dob;
     locationConsent = existing.locationConsent;
     acceptedMedicalNotice = true;
@@ -378,6 +445,7 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
         country: country,
         language: 'العربية',
         dob: dob,
+        gender: gender!,
         locationConsent: locationConsent,
       ),
     );
@@ -438,6 +506,26 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
                 ),
                 const SizedBox(height: 12),
                 _textField(baby, 'اسم الطفل'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DropdownButtonFormField<String>(
+                    value: gender,
+                    items: const [
+                      DropdownMenuItem(value: 'بنت', child: Text('بنت')),
+                      DropdownMenuItem(value: 'ولد', child: Text('ولد')),
+                    ],
+                    onChanged: (value) {
+                      setState(() => gender = value);
+                      widget.store.setDraftGender(value);
+                    },
+                    validator: (value) =>
+                        value == null ? 'اختاري جنس المولود' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'جنس المولود',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
                 _textField(mother, 'اسم الأم'),
                 _textField(father, 'اسم الأب'),
                 ListTile(
@@ -455,8 +543,8 @@ class _ConsentAndProfileState extends State<ConsentAndProfile> {
                     if (selected != null) setState(() => dob = selected);
                   },
                 ),
-                const Card(
-                  color: Color(0xfffff5d8),
+                Card(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
                   child: Padding(
                     padding: EdgeInsets.all(14),
                     child: Text(
@@ -1108,7 +1196,7 @@ class _CryPageState extends State<CryPage> with WidgetsBindingObserver {
           child: Padding(
             padding: EdgeInsets.all(14),
             child: Text(
-              'الصوت يبقى مؤقتًا في ذاكرة التطبيق. الاستماع والحذف يعملان دون رفع. التحليل التجريبي يرسل الصوت فقط بعد موافقتك، ويُحذف من ذاكرة التطبيق بعد محاولة التحليل.',
+              'الصوت يبقى مؤقتًا في ذاكرة التطبيق. يفحص التطبيق وجود إشارة صوتية واضحة أولًا؛ إذا كان التسجيل صامتًا سيطلب إعادة التسجيل ولن يعرض نتيجة. الاستماع والحذف يعملان دون رفع. التحليل التجريبي يرسل الصوت فقط بعد موافقتك، ويُحذف من ذاكرة التطبيق بعد محاولة التحليل.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -1719,8 +1807,8 @@ class _VaccinesState extends State<Vaccines> {
               DateFormat('yyyy-MM-dd').format(profile.dob),
         ),
         const SizedBox(height: 12),
-        const Card(
-          color: Color(0xfffff5d8),
+        Card(
+          color: Theme.of(context).colorScheme.secondaryContainer,
           child: Padding(
             padding: EdgeInsets.all(14),
             child: Text(
@@ -2131,8 +2219,8 @@ class _EmergencyState extends State<Emergency> {
           ),
         ),
         const SizedBox(height: 8),
-        const Card(
-          color: Color(0xffffeeee),
+        Card(
+          color: Theme.of(context).colorScheme.secondaryContainer,
           child: Padding(
             padding: EdgeInsets.all(14),
             child: Text(

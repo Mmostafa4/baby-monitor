@@ -34,7 +34,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AnalysisResult'
-        '400': {description: Invalid WAV encoding or duration}
+        '400': {description: Invalid WAV encoding or duration, or no clear audio signal}
         '401': {description: Missing, invalid, or expired Firebase ID token}
         '413': {description: Audio exceeds the upload limit}
         '415': {description: Unsupported media type}

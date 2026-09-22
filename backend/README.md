@@ -17,6 +17,7 @@ See [MODEL_NOTICE.md](MODEL_NOTICE.md) for model and training-data notices. The 
 - Recording stays on the device unless the caregiver chooses Analyze and approves that specific upload.
 - The app sends only the selected 10-second WAV over HTTPS. It does not send the local child profile.
 - The service buffers at most 400 KB of uploaded audio (plus bounded multipart overhead) in memory and accepts no more than two concurrent analysis requests. It runs inference without writing submitted audio to a database, file, or request-body log. Audio is not used for training.
+- The API rejects empty, silent, or near-silent PCM audio before model inference and asks the caregiver to record again. This is only a microphone signal-quality gate; it is not a cry detector and it does not measure vital signs.
 - Authentication uses a Firebase anonymous account and a short-lived Firebase ID token. The server validates the token; the app contains no Firebase service-account key or model secret.
 - The container has no persistent volume. Its /tmp is a memory-backed filesystem for temporary model downloads. A hosting provider or TLS proxy may still retain ordinary connection metadata; review its terms before sending real recordings.
 - The app erases its in-memory recording after an analysis attempt. The server returns urgent=false; it does not detect emergencies.
@@ -53,7 +54,7 @@ Use the same defines with flutter build ios --release. The app asks for consent 
 ## Endpoints
 
 - GET /v1/health: model readiness only; contains no account or audio data.
-- POST /v1/cry-analysis: authenticated multipart upload using field audio, mono 16 kHz 16-bit PCM WAV, 9.5–10.5 seconds, maximum 400 KB. Returns `category`, `advice`, `score_percent`, and `experimental`.
+- POST /v1/cry-analysis: authenticated multipart upload using field audio, mono 16 kHz 16-bit PCM WAV, 9.5–10.5 seconds, maximum 400 KB. Silent or near-silent audio is rejected before inference. Returns `category`, `advice`, `score_percent`, and `experimental`.
 - POST /v1/newborn-assistant: authenticated JSON with a `question` of 3–900 characters. Returns a general Arabic `answer`; it does not receive the local child profile or audio.
 
 Run format checks with python -m unittest discover -s tests -v from this directory. GitHub Actions also builds the CPU container image. A successful image build does not prove model accuracy or a deployed service.

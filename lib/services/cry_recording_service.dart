@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:record/record.dart';
 
+import 'audio_signal.dart';
+
 /// Captures microphone audio locally and exposes an in-memory WAV preview.
 class CryRecordingService {
   final AudioRecorder _recorder = AudioRecorder();
@@ -76,10 +78,17 @@ class CryRecordingService {
       _audioData = BytesBuilder(copy: false);
       if (pcm.isEmpty) return null;
       try {
+        if (!hasAudiblePcm16Signal(pcm)) {
+          throw const CryRecordingException(
+            'لم نلتقط صوتًا واضحًا. قرّبي الهاتف من الطفل وتحققي من إذن الميكروفون ثم أعيدي التسجيل.',
+          );
+        }
         return _wavFromPcm16(pcm);
       } finally {
         pcm.fillRange(0, pcm.length, 0);
       }
+    } on CryRecordingException {
+      rethrow;
     } catch (_) {
       _hasPendingCleanup = true;
       throw const CryRecordingException(

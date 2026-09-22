@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../models/cry_analysis_result.dart';
+import 'audio_signal.dart';
 import 'preview_http_client.dart';
 
 /// Client for the experimental preview API. Never put a service secret in Flutter.
@@ -23,6 +24,11 @@ class CryAnalysisClient {
     }
     if (audioBytes.isEmpty || audioBytes.length > 400000) {
       throw const CryAnalysisException('مدة التسجيل أو حجمه غير صالح للتحليل.');
+    }
+    if (!hasAudibleWavSignal(audioBytes)) {
+      throw const CryAnalysisException(
+        'لم نلتقط صوتًا واضحًا في التسجيل. أعيدي التسجيل قبل طلب التحليل.',
+      );
     }
 
     final token = await accessToken();
