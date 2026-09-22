@@ -2398,3 +2398,195 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
   @override
   void dispose() {
     question.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final text = question.text.trim();
+    if (sending || text.isEmpty) return;
+
+    if (!service.isConfigured) {
+      setState(() {
+        error =
+            'المساعد الذكي غير متصل في هذه النسخة؛ لم يُرسل سؤالك. يحتاج التطبيق إلى خدمة آمنة على الخادم قبل تفعيله.';
+      });
+      return;
+    }
+
+    if (!assistantConsent) {
+      final consent = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إرسال السؤال للمساعد؟'),
+          content: const Text(
+            'سيُرسل نص سؤالك فقط عبر HTTPS إلى خادم المساعد، وقد يعالجه مزوّد نموذج نصي لإعداد إجابة عامة. لا تكتبي اسم الطفل أو عنوانك أو رقم هاتفك أو أي بيانات تعريفية. لا يُرسل الصوت أو الموقع أو ملف الطفل. المساعد لا يشخّص ولا يصف جرعات أدوية.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('أوافق لهذه الجلسة'),
+            ),
+          ],
+        ),
+      );
+      if (consent != true || !mounted) return;
+      assistantConsent = true;
+    }
+
+    setState(() {
+      sending = true;
+      error = null;
+      messages.add(_AssistantMessage(text, true));
+      question.clear();
+    });
+
+    try {
+      final answer = await service.ask(text);
+      if (mounted) {
+        setState(() => messages.add(_AssistantMessage(answer, false)));
+      }
+    } on NewbornAssistantException catch (exception) {
+      if (mounted) setState(() => error = exception.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() =>
+            error = 'تعذر الاتصال بالمساعد. تحققي من الإنترنت وحاولي لاحقًا.');
+      }
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Card(
+          margin: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'اسألي عن رعاية حديثي الولادة',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  service.isConfigured
+                      ? 'نقطة المساعد الآمنة متاحة للإرسال. اكتبي سؤالًا عامًا دون اسم الطفل أو بيانات تعريفية؛ إذا لم تُجهّز خدمة النموذج سيظهر تنبيه.'
+                      : 'المساعد الذكي غير متصل بعد. إعداد الخادم ومفتاح الخدمة غير موجودين؛ لن يُرسل السؤال حتى يتم الإعداد.',
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'السؤال يُرسل فقط بعد موافقتك. الموقع والصوت وتاريخ الميلاد لا تُرسل إلى المساعد.',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (messages.isEmpty)
+          const Expanded(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(22),
+                child: Text(
+                  'أمثلة: كيف أميّز صعوبة التنفس؟ ما علامات الرضاعة الكافية؟ كيف أهيئ مكان نوم آمن؟',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final message = messages[index];
+                return Align(
+                  alignment: message.fromUser
+                      ? AlignmentDirectional.centerStart
+                      : AlignmentDirectional.centerEnd,
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 340),
+                    margin: const EdgeInsets.symmetric(vertical: 5),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: message.fromUser
+                          ? Theme.of(context).colorScheme.secondaryContainer
+                          : Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(message.text),
+                  ),
+                );
+              },
+            ),
+          ),
+        if (sending)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 6),
+            child: LinearProgressIndicator(),
+          ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+            child: Text(
+              error!,
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: question,
+                    enabled: !sending,
+                    minLines: 1,
+                    maxLines: 4,
+                    maxLength: 900,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => unawaited(_send()),
+                    decoration: const InputDecoration(
+                      hintText: 'اكتبي سؤالك هنا',
+                      border: OutlineInputBorder(),
+                      counterText: '',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: sending ? null : _send,
+                  icon: const Icon(Icons.send),
+                  tooltip: 'إرسال السؤال',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AssistantMessage {
+  final String text;
+  final bool fromUser;
+
+  const _AssistantMessage(this.text, this.fromUser);
+}
