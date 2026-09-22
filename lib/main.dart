@@ -1794,6 +1794,115 @@ class _VaccinesState extends State<Vaccines> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  void _showVaccineInfo(BuildContext context, String code) {
+    final info = vaccineInformation[code];
+    if (info == null) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  info.name,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'ما الذي يقي منه؟',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(info.protectsAgainst),
+                const SizedBox(height: 14),
+                const Text(
+                  'الآثار الجانبية المتوقعة',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(info.expectedSideEffects),
+                const SizedBox(height: 14),
+                const Text(
+                  'تنبيه مهم',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(info.rareWarnings),
+                const SizedBox(height: 16),
+                if (info.sourceUrl != null)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _openSource(info.sourceUrl!);
+                    },
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('فتح مصدر معلومات السلامة'),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _additionalVaccineSection(ChildProfile profile) {
+    return Card(
+      child: ExpansionTile(
+        initiallyExpanded: true,
+        leading: const Icon(Icons.add_circle_outline),
+        title: const Text(
+          'تطعيمات إضافية للمناقشة مع الطبيب',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: const Text(
+          'ليست مواعيد وزارة ثابتة؛ الجرعات والفواصل تعتمد على المنتج وحالة الطفل.',
+        ),
+        children: [
+          for (final recommendation in egyptAdditionalVaccineRecommendations)
+            ListTile(
+              leading: const Icon(Icons.vaccines_outlined),
+              title: Text(recommendation.name),
+              subtitle: Text(
+                recommendation.firstReviewAgeMonths == null
+                    ? recommendation.timing + ' • ' + recommendation.scheduleNote
+                    : recommendation.timing +
+                        ' • أول موعد للمراجعة: ' +
+                        DateFormat('yyyy-MM-dd').format(
+                          vaccineDueDate(
+                            profile.dob,
+                            VaccineScheduleDose(
+                              recommendation.firstReviewAgeMonths!,
+                              recommendation.code,
+                            ),
+                          ),
+                        ) +
+                        ' • ' +
+                        recommendation.scheduleNote,
+              ),
+              isThreeLine: true,
+              trailing: IconButton(
+                tooltip: 'الآثار الجانبية',
+                onPressed: () =>
+                    _showVaccineInfo(context, recommendation.code),
+                icon: const Icon(Icons.info_outline),
+              ),
+              onTap: () => _showVaccineInfo(context, recommendation.code),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = widget.store.profile!;
@@ -1828,15 +1937,39 @@ class _VaccinesState extends State<Vaccines> {
             ),
           ),
         ),
+        if (profile.country == 'مصر')
+          Card(
+            color: Theme.of(context).colorScheme.tertiaryContainer,
+            child: const Padding(
+              padding: EdgeInsets.all(14),
+              child: Text(
+                'تمت مراجعة جدول مصر الأساسي: جرعة كبدى B خلال أول 24 ساعة، الدرن وسابين عند الميلاد، الخماسي وسابين وسولك عند 2 و4 و6 أشهر، سابين عند 9 و12 و18 شهرًا، وMMR عند 12 و18 شهرًا، مع فيتامين أ عند 6 و12 و18 شهرًا. الجرعات الإضافية تظهر في قسم منفصل للمراجعة الطبية.',
+              ),
+            ),
+          ),
         for (final month in grouped.keys.toList()..sort())
           _vaccineAgeGroup(
             month,
             grouped[month]!,
             profile,
           ),
+        if (profile.country == 'مصر') ...[
+          const SizedBox(height: 8),
+          _additionalVaccineSection(profile),
+          const SizedBox(height: 8),
+          Card(
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: const Padding(
+              padding: EdgeInsets.all(14),
+              child: Text(
+                'بعد التطعيم: اطلبوا مساعدة عاجلة عند صعوبة التنفس، تورم الوجه أو اللسان، تشنج، خمول شديد، حرارة عالية أو مستمرة، أو بكاء حاد لا يهدأ. لا تعطي دواءً أو جرعة إضافية من تلقاء نفسك.',
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         const Text(
-          'تاريخ إدخال البيانات: 20 سبتمبر 2026. راجعي المصدر الرسمي قبل كل موعد.',
+          'آخر مراجعة داخل التطبيق: 22 سبتمبر 2026. راجعي كارت التطعيم ومكتب الصحة قبل كل موعد.',
           style: TextStyle(fontSize: 12, color: Colors.black54),
         ),
         const SizedBox(height: 8),
@@ -1850,6 +1983,18 @@ class _VaccinesState extends State<Vaccines> {
             onPressed: () => _openSource(egyptMinistryVaccineUrl),
             icon: const Icon(Icons.open_in_new),
             label: const Text('وزارة الصحة المصرية: جدول تطعيمات الأطفال'),
+          ),
+        if (profile.country == 'مصر')
+          OutlinedButton.icon(
+            onPressed: () => _openSource(egyptHealthCouncilVaccineUrl),
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('المجلس الصحي المصري: جدول الجرعات والآثار'),
+          ),
+        if (profile.country == 'مصر')
+          OutlinedButton.icon(
+            onPressed: () => _openSource(egyptUnicefVaccineScheduleUrl),
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('يونيسف مصر: الجدول الروتيني والحملات'),
           ),
         if (profile.country == 'مصر')
           OutlinedButton.icon(
@@ -1936,11 +2081,23 @@ class _VaccinesState extends State<Vaccines> {
               final dueDate = vaccineDueDate(profile.dob, dose);
               final overdue =
                   dateOnly(dueDate).isBefore(dateOnly(DateTime.now()));
-              final name = vaccineArabicNames[dose.code] ?? dose.code;
+              final info = vaccineInformation[dose.code];
+              final name =
+                  info?.name ?? vaccineArabicNames[dose.code] ?? dose.code;
               final conditionalNote =
                   dose.conditional && dose.timingNote == null
                       ? 'قد يعتمد على الموسم أو الحالة الصحية • '
                       : '';
+              final doseLabel = dose.doseLabel == null
+                  ? ''
+                  : dose.doseLabel! + ' • ';
+              final dueDateLabel =
+                  'الموعد المتوقع: ' + DateFormat('yyyy-MM-dd').format(dueDate);
+              final statusLabel = done
+                  ? 'سُجّلت كجرعة أُعطيت'
+                  : overdue
+                      ? 'موعدها مرّ — راجعي مركز التطعيم'
+                      : 'لم يحن الموعد بعد';
 
               return CheckboxListTile(
                 value: done,
@@ -1951,23 +2108,24 @@ class _VaccinesState extends State<Vaccines> {
                 },
                 title: Text(name),
                 subtitle: Text(
-                  conditionalNote +
-                      (dose.timingNote == null
-                          ? ''
-                          : dose.timingNote! + ' • ') +
-                      (done
-                          ? 'سُجّلت كجرعة أُعطيت'
-                          : overdue
-                              ? 'موعدها مرّ — راجعي مركز التطعيم'
-                              : 'الموعد المتوقع: ' +
-                                  DateFormat('yyyy-MM-dd').format(dueDate)),
+                  (dose.isSupplement ? 'مكمل غذائي • ' : '') +
+                      doseLabel +
+                      conditionalNote +
+                      (dose.timingNote == null ? '' : dose.timingNote! + ' • ') +
+                      dueDateLabel + ' • ' + statusLabel,
                 ),
-                secondary: dose.conditional
-                    ? const Icon(Icons.info_outline, color: Colors.orange)
-                    : Icon(
-                        done ? Icons.check_circle : Icons.vaccines_outlined,
-                        color: done ? Colors.green : null,
-                      ),
+                secondary: IconButton(
+                  tooltip: 'الآثار الجانبية المحتملة',
+                  onPressed: () => _showVaccineInfo(context, dose.code),
+                  icon: Icon(
+                    dose.isSupplement
+                        ? Icons.medication_outlined
+                        : dose.conditional
+                            ? Icons.info_outline
+                            : Icons.vaccines_outlined,
+                    color: dose.conditional ? Colors.orange : null,
+                  ),
+                ),
               );
             }),
         ],

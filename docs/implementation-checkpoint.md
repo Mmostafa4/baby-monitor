@@ -8,7 +8,7 @@
 - Optional GPS consent in setup and foreground-only location lookup from Emergency. Successful location lookup is shown with a check mark; coordinates are passed to a Google Maps search and are not saved by the app.
 - Ten-second microphone capture with a captured-byte check and short-lived in-memory playback. The parent can delete it without uploading.
 - An optional experimental cry-analysis client and CPU backend. A separate confirmation is required for each upload; the backend does not persist the audio and does not return a numeric confidence.
-- Age-based vaccine reminder tables for the countries in onboarding, local completion checkboxes, and source links.
+- Age-based vaccine reminder tables for the countries in onboarding, local completion checkboxes, and source links. Egypt now includes birth-dose timing windows, date calculation from the entered DOB, the 2/4/6-month IPV rows, vitamin-A supplement rows at 6/12/18 months, side-effect details, and a separate clinician-discussion list for additional vaccines.
 - A local weekly newborn-development guide selected from the child's date of birth, with CDC links and no milestone diagnosis.
 - Emergency guidance and an optional newborn Q&A screen that shows whether its protected service is configured.
 - Android/iOS scaffold with microphone and foreground location declarations.
