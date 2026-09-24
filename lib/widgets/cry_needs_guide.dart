@@ -13,45 +13,48 @@ class CryNeedsGuide extends StatelessWidget {
           'راقبي مصّ اليد، فتح وإغلاق الفم، أو تحريك الرأس بحثًا عن الرضعة. البكاء قد يكون علامة متأخرة للجوع؛ راجعي وقت آخر رضعة وإشارات الطفل معًا.',
       action:
           'اهدئي الطفل أولًا إذا كان منزعجًا، ثم اعرضي الرضعة المعتادة إذا ظهرت إشارات الجوع وكان موعدها مناسبًا.',
-      youtubeUrl: 'https://www.youtube.com/watch?v=Un7AB7ZBTa0',
+      videoNote: 'فيديو يوضح إشارات الجوع قبل البكاء؛ ليس دليلًا صوتيًا يثبت الجوع.',
+      youtubeUrl: 'https://www.youtube.com/watch?v=cuHbGAXoMgg',
     ),
     _CryNeedTip(
       icon: Icons.air,
-      title: 'مغص / ألم بطن',
+      title: 'مغص / غازات',
       description:
-          'قد يظهر تململ أو ثني للساقين أو بكاء أثناء الرضعة أو بعدها. هذه العلامات لا تثبت المغص ولا تحدد وجود مرض، لذلك راقبي التكرار وباقي حالة الطفل.',
+          'قد يحدث بكاء طويل يصعب تهدئته، أو تململ أثناء الرضعة أو بعدها. لا يثبت شكل البكاء أو ثني الساقين وجود مغص أو غازات، لذلك راقبي التكرار وباقي حالة الطفل.',
       action:
           'إذا بدا غير مرتاح، احمليه بأمان وراجعي طريقة الرضعة والتجشؤ. عند القيء المتكرر أو الحرارة أو البكاء غير المعتاد، تواصلي مع طبيب الطفل.',
-      youtubeUrl:
-          'https://www.youtube.com/results?search_query=real+newborn+colic+cry+sound',
+      videoNote: 'فيديو عام عن بكاء الرضع؛ لا يوجد صوت يثبت تشخيص المغص.',
+      youtubeUrl: 'https://www.youtube.com/watch?v=7vpHo45ai_g',
     ),
     _CryNeedTip(
       icon: Icons.bubble_chart_outlined,
-      title: 'حاجة للتجشؤ',
+      title: 'عدم ارتياح',
       description:
-          'قد يحدث تململ أو بكاء أثناء الرضعة أو بعدها، وقد يهدأ الطفل بعد حمله في وضع قائم وتجشئته بلطف. ليس كل بكاء بعد الرضعة سببه غازات.',
+          'قد يكون الحفاض مبتلًا، أو الملابس ضيقة، أو الجو حارًا أو باردًا. افحصي هذه الأمور مع الطفل؛ لا يمكن معرفة السبب من صوت البكاء وحده.',
       action:
-          'جرّبي التجشؤ بلطف مع دعم الرأس والرقبة بالطريقة المناسبة للرضعة، وتوقفي إذا بدا الطفل متضايقًا.',
-      youtubeUrl:
-          'https://www.youtube.com/playlist?list=PLxIdG0gu9NPKllocTIfyuc7P7l_rPVRbp',
+          'افحصي الحفاض والملابس وحرارة المكان، ثم راقبي إن كان الطفل يهدأ بعد تغيير ما يزعجه.',
+      videoNote: 'فيديو يوضح إشارات أن الطفل يحتاج تغيير شيء حوله، لا سببًا مؤكدًا.',
+      youtubeUrl: 'https://www.youtube.com/watch?v=qukpL_uHnNQ',
+    ),
+    _CryNeedTip(
+      icon: Icons.favorite_outline,
+      title: 'حاجة للحنان',
+      description:
+          'قد يحتاج الطفل إلى القرب والاحتواء حتى بعد فحص الرضعة والحفاض. لا توجد نغمة بكاء تثبت أنه يطلب الحضن تحديدًا.',
+      action:
+          'احمليه بلطف مع دعم الرأس والرقبة، وتحدثي معه بهدوء أو جربي التهدئة المعتادة.',
+      videoNote: 'فيديو واقعي عن تهدئة طفل يبكي؛ لا يحدد وحده سبب البكاء.',
+      youtubeUrl: 'https://www.youtube.com/watch?v=U7L3ppy_VO0',
     ),
     _CryNeedTip(
       icon: Icons.sentiment_dissatisfied_outlined,
-      title: 'انزعاج عام',
+      title: 'تضايق / زيادة مؤثرات',
       description:
-          'راجعي الحفاض، والملابس الضيقة، وحرارة أو برودة المكان، والضوضاء أو الضوء الزائد. قد يكون البكاء متقطعًا ويهدأ بعد إزالة المثير المزعج.',
+          'قد يضايق الطفل الضوء الساطع أو الضوضاء أو كثرة الحركة. راقبي إن كان يدير وجهه بعيدًا أو يزداد تململه في المكان المزدحم.',
       action:
-          'افحصي الطفل والبيئة بهدوء، خففي المثيرات، ثم راقبي هل تحسن بعد تغيير الحفاض أو الملابس أو المكان.',
-      youtubeUrl: 'https://www.youtube.com/watch?v=Z1th785gztQ',
-    ),
-    _CryNeedTip(
-      icon: Icons.bedtime_outlined,
-      title: 'تعب / نعاس',
-      description:
-          'قد تلاحظين التثاؤب أو فرك العينين أو إدارة الوجه أو تململًا وبكاءً متقطعًا. لا يمكن تأكيد التعب من نغمة الصوت وحدها.',
-      action:
-          'خففي الضوء والضوضاء وابدئي روتين نوم هادئًا. ضعي الطفل للنوم على ظهره فوق سطح ثابت ومستوٍ وخالٍ من الأشياء الرخوة.',
-      youtubeUrl: 'https://www.youtube.com/watch?v=qmk8nOcaR0Y',
+          'خففي الضوء والصوت والحركة، واحملي الطفل بهدوء إذا كان يحتاج ذلك. افحصي أيضًا أسباب عدم الارتياح الأخرى.',
+      videoNote: 'فيديو يوضح زيادة المؤثرات ومحاولة تهدئة الطفل، لا بصمة صوتية للتضايق.',
+      youtubeUrl: 'https://www.youtube.com/watch?v=XtwbXngTjGs',
     ),
   ];
 
@@ -69,7 +72,7 @@ class CryNeedsGuide extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               const Text(
-                'اختاري أي زر لقراءة الوصف والاستماع إلى مثال صوتي خارجي من YouTube. المثال للتثقيف فقط؛ الصوت وحده لا يثبت السبب.',
+                'اختاري أي زر لقراءة الوصف وفتح فيديو تعليمي خارجي من برنامج Minnesota WIC. الصوت وحده لا يثبت السبب، وهذه الأزرار منفصلة عن فئات نموذج التحليل.',
               ),
               const SizedBox(height: 12),
               for (final tip in _tips) ...[
@@ -126,8 +129,10 @@ class CryNeedsGuide extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
+              Text(tip.videoNote),
+              const SizedBox(height: 8),
               const Text(
-                'الصوت التالي مثال واقعي منشور على YouTube وليس مرجعًا تشخيصيًا. قد يختلف بكاء كل طفل عن الآخر.',
+                'الفيديو من برنامج Minnesota WIC التعليمي على YouTube. قد يختلف بكاء كل طفل عن الآخر؛ لا تستخدمي الصوت للتشخيص.',
               ),
               const SizedBox(height: 14),
               FilledButton.icon(
@@ -146,7 +151,7 @@ class CryNeedsGuide extends StatelessWidget {
                   }
                 },
                 icon: const Icon(Icons.ondemand_video_outlined),
-                label: const Text('استمعي إلى مثال على YouTube'),
+                label: const Text('شاهدي واستمعي إلى الفيديو'),
               ),
             ],
           ),
@@ -161,6 +166,7 @@ class _CryNeedTip {
   final String title;
   final String description;
   final String action;
+  final String videoNote;
   final String youtubeUrl;
 
   const _CryNeedTip({
@@ -168,6 +174,7 @@ class _CryNeedTip {
     required this.title,
     required this.description,
     required this.action,
+    required this.videoNote,
     required this.youtubeUrl,
   });
 }
