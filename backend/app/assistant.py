@@ -106,7 +106,7 @@ def offline_answer(question: str) -> str:
     """
     normalized = " ".join(question.casefold().split())
 
-    if any(term in normalized for term in ("نوم آمن", "ينام", "النوم", "سرير")):
+    if any(term in normalized for term in ("نوم آمن", "ينام", "النوم", "نوم", "سرير")):
         return (
             "إرشادات النوم الآمن:\n"
             "• ضعي الطفل على ظهره في كل مرة للنوم، على سطح ثابت ومستوٍ.\n"
