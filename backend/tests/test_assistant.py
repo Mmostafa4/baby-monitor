@@ -61,6 +61,10 @@ class AssistantSafetyTests(unittest.TestCase):
         self.assertIn("على ظهره", answer)
         self.assertIn("وسائد", answer)
 
+    def test_offline_fallback_matches_attached_arabic_sleep_prefix(self) -> None:
+        answer = offline_answer("ما النصائح الآمنة لنوم حديث الولادة؟")
+        self.assertIn("إرشادات النوم الآمن", answer)
+
     def test_offline_fallback_stays_conservative_for_unknown_question(self) -> None:
         answer = offline_answer("هل هذا طبيعي؟")
         self.assertIn("الرد الإرشادي", answer)
