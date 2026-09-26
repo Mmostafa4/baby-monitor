@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3faff">
+  <title>Baby Monitor • تجربة الطبيب</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --ink: #202633;
+      --muted: #596273;
+      --blue: #287dbb;
+      --blue-soft: #eaf6ff;
+      --pink: #a93f72;
+      --danger: #b3261e;
+      --border: #d5dce5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #f3faff 0%, #ffffff 55%);
+      color: var(--ink);
+    }
+    main { width: min(94vw, 520px); margin: 0 auto; padding: 22px 0 40px; }
+    header { text-align: center; padding: 10px 12px 18px; }
+    h1 { margin: 0 0 6px; font-size: 1.75rem; }
+    h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    p { line-height: 1.7; color: var(--muted); }
+    .card {
+      background: rgba(255,255,255,.96);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      margin: 12px 0;
+      box-shadow: 0 8px 24px rgba(33, 56, 79, .08);
+    }
+    .notice { background: var(--blue-soft); border-color: #b8def8; }
+    .warning { background: #fff8e6; border-color: #f0d48c; }
+    .status {
+      min-height: 28px;
+      margin: 12px 0 0;
+      font-weight: 600;
+      color: var(--blue);
+    }
+    .status.error { color: var(--danger); }
+    button, a.button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      min-height: 50px;
+      border: 0;
+      border-radius: 14px;
+      padding: 11px 14px;
+      margin-top: 10px;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    button.primary { background: var(--blue); color: #fff; }
+    button.doctor { background: var(--pink); color: #fff; }
+    button.secondary, a.button.secondary { background: #edf1f5; color: var(--ink); }
+    button.danger { background: #ffe9e7; color: var(--danger); }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .choice { display: grid; gap: 10px; }
+    .hidden { display: none !important; }
+    label { display: block; margin: 12px 0 6px; font-weight: 700; }
+    input {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: .9rem;
+      background: #eef2f6;
+      color: var(--muted);
+    }
+    .pill.online { background: #e4f6e9; color: #176b2c; }
+    .pill.busy { background: #fff0d2; color: #8c5a00; }
+    .call-row { display: flex; gap: 8px; }
+    .call-row button { flex: 1; }
+    audio { width: 100%; margin-top: 12px; }
+    .small { font-size: .88rem; }
+    ul { margin: 8px 0; padding-inline-start: 20px; line-height: 1.8; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>تواصل مع طبيب أطفال</h1>
+      <p>وضع تجربة مجاني للمكالمة الصوتية بين جهازين.</p>
+    </header>
+
+    <section class="card notice">
+      <strong>هذه تجربة تقنية فقط</strong>
+      <p class="small">لا يوجد دفع أو بطاقة أو اشتراك في هذه الصفحة. لا يوجد طبيب حقيقي متصل بهذه النسخة، ولا تُستخدم للتشخيص أو للطوارئ. المكالمة لا تُسجّل بواسطة التطبيق.</p>
+    </section>
+
+    <section id="role-card" class="card">
+      <h2>اختاري وضع التجربة</h2>
+      <p>لعمل اختبار حقيقي، افتحي وضع المستخدم على جهاز، ووضع الطبيب التجريبي على جهاز ثانٍ، ثم اسمحي بالميكروفون في الجهازين.</p>
+      <div class="choice">
+        <button class="primary" id="choose-patient">أنا مستخدم وأريد طبيبًا</button>
+        <button class="doctor" id="choose-doctor">أنا طبيب تجريبي وأريد استقبال طلب</button>
+      </div>
+    </section>
+
+    <section id="patient-card" class="card hidden">
+      <h2>وضع المستخدم</h2>
+      <span id="patient-pill" class="pill">جارٍ الاتصال بالخدمة...</span>
+      <p id="patient-status" class="status">جارٍ تجهيز الاتصال...</p>
+      <button class="primary" id="find-doctor" disabled>ابحث عن طبيب متصل</button>
+      <button class="danger hidden" id="patient-hangup">إنهاء المكالمة</button>
+      <audio id="patient-remote" autoplay playsinline></audio>
+    </section>
+
+    <section id="doctor-card" class="card hidden">
+      <h2>وضع الطبيب التجريبي</h2>
+      <label for="doctor-name">اسم العرض</label>
+      <input id="doctor-name" maxlength="60" value="د. سارة — تجربة">
+      <p id="doctor-status" class="status">أغلقي هذا الوضع عند انتهاء الاختبار.</p>
+      <button class="doctor" id="doctor-online">تشغيل استقبال الطلبات</button>
+      <div id="incoming-card" class="card warning hidden">
+        <strong>يوجد طلب اتصال تجريبي</strong>
+        <p id="incoming-text" class="small">المستخدم ينتظر قبول المكالمة.</p>
+        <div class="call-row">
+          <button class="doctor" id="accept-call">قبول</button>
+          <button class="secondary" id="reject-call">رفض</button>
+        </div>
+      </div>
+      <button class="danger hidden" id="doctor-hangup">إنهاء المكالمة</button>
+      <audio id="doctor-remote" autoplay playsinline></audio>
+    </section>
+
+    <section id="help-card" class="card hidden">
+      <h2>طريقة الاختبار</h2>
+      <ul>
+        <li>افتحي وضع الطبيب التجريبي على هاتف أو متصفح ثانٍ.</li>
+        <li>شغّلي استقبال الطلبات في جهاز الطبيب واسمحي بالميكروفون.</li>
+        <li>اضغطي «ابحث عن طبيب متصل» من جهاز المستخدم.</li>
+        <li>اقبلي الطلب من جهاز الطبيب وتحدثي من الجهازين.</li>
+      </ul>
+      <p class="small">تحتاج المكالمة إلى HTTPS وميكروفون مسموح. بعض الشبكات قد تمنع الاتصال المباشر؛ جرّبي الجهازين على نفس شبكة Wi‑Fi أولًا.</p>
+    </section>
+
+    <a class="button secondary" href="/app/">العودة إلى التطبيق</a>
+  </main>
+
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const requestedRole = params.get('role');
+      const roleCard = document.getElementById('role-card');
+      const patientCard = document.getElementById('patient-card');
+      const doctorCard = document.getElementById('doctor-card');
+      const helpCard = document.getElementById('help-card');
+      const patientStatus = document.getElementById('patient-status');
+      const doctorStatus = document.getElementById('doctor-status');
+      const patientPill = document.getElementById('patient-pill');
+      const findDoctor = document.getElementById('find-doctor');
+      const patientHangup = document.getElementById('patient-hangup');
+      const doctorOnline = document.getElementById('doctor-online');
+      const doctorHangup = document.getElementById('doctor-hangup');
+      const incomingCard = document.getElementById('incoming-card');
+      const incomingText = document.getElementById('incoming-text');
+      const acceptCall = document.getElementById('accept-call');
+      const rejectCall = document.getElementById('reject-call');
+      const doctorName = document.getElementById('doctor-name');
+      const patientRemote = document.getElementById('patient-remote');
+      const doctorRemote = document.getElementById('doctor-remote');
+
+      let role = null;
+      let socket = null;
+      let clientId = null;
+      let partnerId = null;
+      let peerConnection = null;
+      let localStream = null;
+      let pendingCandidates = [];
+      let online = false;
+      let inCall = false;
+
+      const rtcConfig = {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      };
+
+      function setStatus(target, message, error = false) {
+        target.textContent = message;
+        target.classList.toggle('error', error);
+      }
+
+      function showRole(selectedRole) {
+        role = selectedRole;
+        roleCard.classList.add('hidden');
+        helpCard.classList.remove('hidden');
+        if (role === 'patient') {
+          patientCard.classList.remove('hidden');
+          startSocket();
+        } else {
+          doctorCard.classList.remove('hidden');
+          startSocket();
+        }
+      }
+
+      function send(message) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(message));
+        }
+      }
+
+      async function ensureLocalStream() {
+        if (localStream) return true;
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          return true;
+        } catch (_) {
+          setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'لم يُسمح بالميكروفون. افتحي إذن الميكروفون من إعدادات Safari ثم حاولي.', true);
+          return false;
+        }
+      }
+
+      function startSocket() {
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        socket = new WebSocket(protocol + '//' + location.host + '/v1/demo-call/ws');
+        socket.addEventListener('open', () => {
+          send({
+            type: 'register',
+            role,
+            display_name: role === 'doctor' ? doctorName.value.trim() : 'مستخدم التجربة'
+          });
+        });
+        socket.addEventListener('message', event => {
+          let message;
+          try { message = JSON.parse(event.data); } catch (_) { return; }
+          handleMessage(message);
+        });
+        socket.addEventListener('close', () => {
+          clientId = null;
+          findDoctor.disabled = true;
+          setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'انقطع اتصال التجربة. أعيدي فتح الصفحة للمحاولة.', true);
+        });
+        socket.addEventListener('error', () => {
+          setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'تعذر فتح قناة التجربة. تحققي من الإنترنت ثم أعيدي المحاولة.', true);
+        });
+      }
+
+      async function handleMessage(message) {
+        switch (message.type) {
+          case 'connected':
+            clientId = message.client_id;
+            break;
+          case 'registered':
+            if (role === 'patient') {
+              findDoctor.disabled = false;
+              patientPill.textContent = 'متصل بوضع التجربة';
+              patientPill.classList.add('online');
+              setStatus(patientStatus, 'جاهز للبحث عن طبيب تجريبي متصل.');
+            } else {
+              setStatus(doctorStatus, 'تم فتح وضع الطبيب. شغّلي استقبال الطلبات.');
+            }
+            break;
+          case 'online':
+            online = message.available === true;
+            doctorOnline.textContent = online ? 'إيقاف استقبال الطلبات' : 'تشغيل استقبال الطلبات';
+            doctorOnline.classList.toggle('secondary', online);
+            setStatus(doctorStatus, online ? 'أنتِ ظاهرة كطبيب متصل وتنتظرين طلبًا.' : 'تم إيقاف استقبال الطلبات.');
+            break;
+          case 'matched':
+            partnerId = message.partner_id;
+            if (role === 'patient') {
+              setStatus(patientStatus, 'تم العثور على ' + (message.display_name || 'طبيب تجريبي') + '. في انتظار قبول الطلب...');
+            } else {
+              incomingCard.classList.remove('hidden');
+              acceptCall.disabled = false;
+              rejectCall.disabled = false;
+              incomingText.textContent = 'المستخدم ينتظر قبول مكالمة صوتية تجريبية.';
+              setStatus(doctorStatus, 'يوجد طلب اتصال.');
+            }
+            break;
+          case 'accepted':
+            if (role === 'patient') {
+              setStatus(patientStatus, 'تم قبول الطلب. اسمحي بالميكروفون لبدء المكالمة.');
+              await createPeer(true);
+            } else {
+              incomingCard.classList.add('hidden');
+              setStatus(doctorStatus, 'تم قبول الطلب. جارٍ فتح الميكروفون...');
+            }
+            break;
+          case 'rejected':
+            partnerId = null;
+            incomingCard.classList.add('hidden');
+            acceptCall.disabled = false;
+            rejectCall.disabled = false;
+            findDoctor.disabled = false;
+            await closePeer(false);
+            setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'لم يتم قبول الطلب. جرّبي مرة أخرى.', true);
+            break;
+          case 'no_doctor':
+            findDoctor.disabled = false;
+            await closePeer(false);
+            setStatus(patientStatus, 'لا يوجد طبيب تجريبي متصل الآن. افتحي وضع الطبيب على جهاز ثانٍ ثم حاولي.', true);
+            break;
+          case 'signal':
+            await handleSignal(message.data);
+            break;
+          case 'hangup':
+            await closePeer(false);
+            partnerId = null;
+            incomingCard.classList.add('hidden');
+            if (role === 'doctor') {
+              setStatus(doctorStatus, 'انتهت المكالمة. ما زلتِ متاحة لاستقبال طلب جديد.');
+              doctorHangup.classList.add('hidden');
+            } else {
+              findDoctor.disabled = false;
+              setStatus(patientStatus, 'انتهت المكالمة التجريبية.');
+              patientHangup.classList.add('hidden');
+            }
+            break;
+          case 'error':
+            setStatus(role === 'doctor' ? doctorStatus : patientStatus, message.message || 'حدث خطأ في تجربة الاتصال.', true);
+            break;
+        }
+      }
+
+      async function createPeer(isCaller) {
+        if (peerConnection) return;
+        try {
+          if (!await ensureLocalStream()) return;
+          peerConnection = new RTCPeerConnection(rtcConfig);
+          localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+          peerConnection.ontrack = event => {
+            const audio = role === 'patient' ? patientRemote : doctorRemote;
+            audio.srcObject = event.streams[0];
+            audio.play().catch(() => {});
+          };
+          peerConnection.onicecandidate = event => {
+            if (event.candidate) {
+              send({ type: 'signal', data: { kind: 'ice', candidate: event.candidate } });
+            }
+          };
+          peerConnection.onconnectionstatechange = () => {
+            const state = peerConnection.connectionState;
+            if (state === 'connected') {
+              inCall = true;
+              if (role === 'patient') {
+                setStatus(patientStatus, 'المكالمة الصوتية التجريبية تعمل الآن.');
+                patientHangup.classList.remove('hidden');
+              } else {
+                setStatus(doctorStatus, 'المكالمة الصوتية التجريبية تعمل الآن.');
+                doctorHangup.classList.remove('hidden');
+              }
+            }
+            if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+              setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'تعذر استمرار الاتصال. جرّبي الجهازين على نفس شبكة Wi‑Fi.', true);
+            }
+          };
+          if (isCaller) {
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            send({ type: 'signal', data: { kind: 'offer', description: peerConnection.localDescription } });
+          }
+        } catch (error) {
+          await closePeer(false);
+          setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'لم يُسمح بالميكروفون أو لا يدعم المتصفح المكالمة التجريبية.', true);
+        }
+      }
+
+      async function handleSignal(data) {
+        if (!data || !data.kind) return;
+        if (data.kind === 'offer') {
+          await createPeer(false);
+          if (!peerConnection) return;
+          await peerConnection.setRemoteDescription(data.description);
+          for (const candidate of pendingCandidates) await peerConnection.addIceCandidate(candidate);
+          pendingCandidates = [];
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          send({ type: 'signal', data: { kind: 'answer', description: peerConnection.localDescription } });
+          return;
+        }
+        if (data.kind === 'answer' && peerConnection) {
+          await peerConnection.setRemoteDescription(data.description);
+          for (const candidate of pendingCandidates) await peerConnection.addIceCandidate(candidate);
+          pendingCandidates = [];
+          return;
+        }
+        if (data.kind === 'ice' && data.candidate) {
+          const candidate = new RTCIceCandidate(data.candidate);
+          if (peerConnection && peerConnection.remoteDescription) {
+            await peerConnection.addIceCandidate(candidate);
+          } else {
+            pendingCandidates.push(candidate);
+          }
+        }
+      }
+
+      async function closePeer(notify = true) {
+        if (notify && partnerId) send({ type: 'hangup' });
+        if (peerConnection) peerConnection.close();
+        if (localStream) localStream.getTracks().forEach(track => track.stop());
+        peerConnection = null;
+        localStream = null;
+        pendingCandidates = [];
+        inCall = false;
+      }
+
+      document.getElementById('choose-patient').addEventListener('click', () => showRole('patient'));
+      document.getElementById('choose-doctor').addEventListener('click', () => showRole('doctor'));
+      if (requestedRole === 'patient' || requestedRole === 'doctor') showRole(requestedRole);
+
+      findDoctor.addEventListener('click', () => {
+        (async () => {
+          if (!await ensureLocalStream()) return;
+          setStatus(patientStatus, 'جارٍ البحث عن طبيب تجريبي متصل...');
+          findDoctor.disabled = true;
+          send({ type: 'find_doctor' });
+        })();
+      });
+
+      doctorOnline.addEventListener('click', () => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        online = !online;
+        send({ type: 'set_online', available: online, display_name: doctorName.value.trim() });
+      });
+
+      acceptCall.addEventListener('click', async () => {
+        if (!await ensureLocalStream()) return;
+        await createPeer(false);
+        if (!peerConnection) return;
+        send({ type: 'accept' });
+        acceptCall.disabled = true;
+        rejectCall.disabled = true;
+      });
+
+      rejectCall.addEventListener('click', () => {
+        send({ type: 'reject' });
+        incomingCard.classList.add('hidden');
+      });
+
+      patientHangup.addEventListener('click', async () => {
+        await closePeer(true);
+        send({ type: 'hangup' });
+        patientHangup.classList.add('hidden');
+        setStatus(patientStatus, 'أنهيتِ المكالمة التجريبية.');
+      });
+
+      doctorHangup.addEventListener('click', async () => {
+        await closePeer(true);
+        send({ type: 'hangup' });
+        doctorHangup.classList.add('hidden');
+        setStatus(doctorStatus, 'أنهيتِ المكالمة. ما زلتِ متاحة لاستقبال طلب جديد.');
+      });
+
+      window.addEventListener('beforeunload', () => {
+        if (socket) socket.close();
+      });
+    })();
+  </script>
+</body>
+</html>

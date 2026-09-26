@@ -6,6 +6,8 @@ The repository contains an Arabic-only Flutter MVP with Android/iOS scaffolding,
 
 The private Safari beta has an HTTPS Railway service with an experimental cry model. It requires an invite code and asks for separate approval before each audio upload; audio remains local until that approval. Default native builds do not connect to the service because Firebase is not configured, and newborn Q&A has no text-model provider. The cry model is not clinically validated; its 0–100 score is an uncalibrated model output, not a probability that a suggested cause is correct. Subscription purchase and trial entitlement are not connected. A manual TestFlight workflow is prepared, but it requires the app owner's Apple signing material and App Store Connect credentials.
 
+The beta also contains a free `/call-demo` technology preview. It uses a protected in-memory WebSocket room and browser-to-browser WebRTC audio between two devices; it has no payment, doctor verification, card handling, call recording, or emergency capability. It is only a connectivity prototype and must not be presented as a live pediatric consultation service.
+
 ## Required before store distribution
 
 - Provision Firebase app registrations, connect native builds to the existing HTTPS beta host, and configure the app without exposing the Firebase Admin key.

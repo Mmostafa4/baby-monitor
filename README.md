@@ -14,6 +14,7 @@ The public GitHub Pages preview remains on `main`. This branch adds a separate p
 - Age-based vaccination reminders for the countries listed in onboarding, with the Egypt routine table checked against Egyptian Health Council/Ministry/UNICEF sources, date calculation from the entered birth date, vitamin-A supplement entries, side-effect guidance, local completion marks, and source links. Additional vaccines are clearly separated as clinician-discussion items; these reminders are not a clinical catch-up plan.
 - A weekly newborn-development guide based on the child's local date of birth, with CDC source links. It is an age-based educational prompt, not a milestone test.
 - A newborn Q&A screen with a protected HTTPS backend adapter for an OpenAI-compatible text-model provider. The screen checks `/v1/health` and stays blocked until the server-side provider URL, key, and model are configured; no provider key is shipped in Flutter.
+- A free, payment-free two-device doctor-call technology demo at `/call-demo`: one browser can act as the patient and another as a demo doctor. It uses browser WebRTC audio and an in-memory WebSocket signaling room; it is not a real medical service, has no card collection, and does not record calls.
 - Subscription UI is a mockup; no purchase is connected.
 
 ## Device permissions

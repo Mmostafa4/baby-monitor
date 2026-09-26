@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -2406,6 +2407,29 @@ class _EmergencyState extends State<Emergency> {
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
+  Future<void> _openDoctorCallDemo() async {
+    if (!kIsWeb || Uri.base.scheme != 'https') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تجربة الاتصال متاحة حاليًا من نسخة Safari التجريبية عبر HTTPS.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    final opened = await launchUrl(
+      Uri.base.resolve('/call-demo?role=patient'),
+      mode: LaunchMode.platformDefault,
+    );
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر فتح تجربة الاتصال على هذا الجهاز.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = widget.store.profile!;
@@ -2500,6 +2524,32 @@ class _EmergencyState extends State<Emergency> {
                 const Text(
                   'النتائج تأتي من Google Maps وقد تحتاجين إلى التأكد من التخصص وساعات العمل قبل الذهاب.',
                   style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'تواصل مع طبيب أطفال • تجربة مجانية',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'تجربة اتصال صوتي بين جهازين بدون دفع أو إدخال بطاقة. افتحي وضع الطبيب التجريبي على جهاز ثانٍ، ثم ابدئي البحث من هنا. هذه ليست خدمة طبية حقيقية ولا تستخدم للطوارئ.',
+                ),
+                const SizedBox(height: 10),
+                FilledButton.tonalIcon(
+                  onPressed: _openDoctorCallDemo,
+                  icon: const Icon(Icons.phone_in_talk_outlined),
+                  label: const Text('بدء تجربة الاتصال'),
                 ),
               ],
             ),
