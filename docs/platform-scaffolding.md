@@ -1,7 +1,7 @@
 # Platform scaffolding note
 
-The repository now contains the text-based Android Gradle wrapper configuration and iOS Xcode/ CocoaPods project scaffolding. `gradle-wrapper.jar`, CocoaPods-generated `Pods/`, and Flutter-generated build artifacts are intentionally not committed.
+The repository contains Flutter-generated Android and iOS project scaffolding, including the Gradle wrapper required for a clean Android checkout. CocoaPods-generated `Pods/`, local SDK paths, and Flutter build artifacts are not committed.
 
-Run `flutter create .` locally in the project root to regenerate the exact Flutter toolchain files and wrapper binary for the installed Flutter SDK, then run `flutter pub get` and `pod install` on macOS before attempting an iOS build.
+From the project root, run `flutter pub get`. Before an iOS build, run `python3 scripts/configure_ios.py`, then run `pod install` from `ios/`. After upgrading Flutter, regenerate platform files with `flutter create --template=app --platforms=android,ios --no-pub .` and reapply the iOS permission and deployment settings.
 
-No backend, AI, payments, or tests were added. The MVP and microphone permission declarations remain unchanged.
+An experimental model backend is included for a private preview, but no service has been deployed or configured. Payments are not connected. The app still requires final store identifiers, Apple signing, and physical-device checks before an iPhone beta or store distribution.

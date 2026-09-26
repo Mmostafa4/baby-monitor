@@ -1,0 +1,59 @@
+name: Build Android test APK
+
+on:
+  push:
+    branches:
+      - codex/mvp-native-integration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Build installable Android test APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ANDROID_APPLICATION_ID: ${{ vars.ANDROID_APPLICATION_ID }}
+      BABY_MONITOR_API_ENDPOINT: ${{ vars.BABY_MONITOR_API_ENDPOINT }}
+      BABY_MONITOR_AI_ENDPOINT: ${{ vars.BABY_MONITOR_AI_ENDPOINT }}
+      FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+      FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}
+      FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Build release-mode test APK
+        run: |
+          dart_defines=()
+          [[ -n "$BABY_MONITOR_API_ENDPOINT" ]] && dart_defines+=("--dart-define=BABY_MONITOR_API_ENDPOINT=$BABY_MONITOR_API_ENDPOINT")
+          [[ -n "$BABY_MONITOR_AI_ENDPOINT" ]] && dart_defines+=("--dart-define=BABY_MONITOR_AI_ENDPOINT=$BABY_MONITOR_AI_ENDPOINT")
+          [[ -n "$FIREBASE_API_KEY" ]] && dart_defines+=("--dart-define=FIREBASE_API_KEY=$FIREBASE_API_KEY")
+          [[ -n "$FIREBASE_ANDROID_APP_ID" ]] && dart_defines+=("--dart-define=FIREBASE_ANDROID_APP_ID=$FIREBASE_ANDROID_APP_ID")
+          [[ -n "$FIREBASE_MESSAGING_SENDER_ID" ]] && dart_defines+=("--dart-define=FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID")
+          [[ -n "$FIREBASE_PROJECT_ID" ]] && dart_defines+=("--dart-define=FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID")
+          flutter build apk --release "${dart_defines[@]}"
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: baby-monitor-android-test-${{ github.sha }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30

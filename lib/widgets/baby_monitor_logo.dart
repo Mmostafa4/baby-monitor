@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-/// Brand mark: cartoon baby in a diaper sending sound waves to a smiling mother's ear.
+/// The cartoon baby artwork used as the app's in-screen brand mark.
 class BabyMonitorLogo extends StatelessWidget {
   final double size;
   const BabyMonitorLogo({super.key, this.size = 128});
@@ -9,11 +8,12 @@ class BabyMonitorLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ClipRRect(
         borderRadius: BorderRadius.circular(size * .23),
-        child: SvgPicture.asset(
-          'assets/branding/baby_monitor_logo.svg',
+        child: Image.asset(
+          'assets/branding/baby_monitor_cartoon_icon_512.png',
           width: size,
           height: size,
-          semanticsLabel: 'Baby Monitor logo',
+          fit: BoxFit.cover,
+          semanticLabel: 'Baby Monitor logo',
         ),
       );
 }

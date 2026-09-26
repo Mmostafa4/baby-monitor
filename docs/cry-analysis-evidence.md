@@ -1,0 +1,104 @@
+# مراجعة أدلة تحليل بكاء الرضع
+
+**تاريخ المراجعة:** 21 سبتمبر 2026
+
+## الخلاصة
+
+توجد أبحاث تستخدم الصوت لتمييز بعض الحالات، مثل البكاء أثناء الألم الحاد أو مستوى الضيق. لكن الأدلة لا تثبت حتى الآن أن تسجيلًا منزليًا مدته 10 ثوانٍ يستطيع تحديد واحد من الأسباب الخمسة المطلوبة بدقة ثابتة عند أطفال وأجهزة مختلفة. المشكلة الأساسية ليست طول التسجيل؛ بل نقص التسجيلات ذات الأسباب المؤكدة، واختلاف البكاء بين الأطفال، وضعف التحقق على أطفال لم يدخلوا في التدريب.
+
+لهذا تعرض نسخة Safari الخاصة النتيجة كتخمين تجريبي واحد فقط بعد موافقة صريحة على إرسال المقطع، مع درجة من 0 إلى 100 تمثل خرج النموذج غير المعاير، ولا تمثل نسبة احتمال صحة السبب أو دقة التشخيص. لا يعمل التحليل في البناء الأصلي الافتراضي، ولا ينبغي تقديمه كميزة دقيقة أو موثوقة قبل اختباره على أطفال وأجهزة لم تدخل التدريب.
+
+## مدى تطابق المصادر مع الفئات المطلوبة
+
+| الفئة المطلوبة | أقرب تسمية بحثية | ما لا يمكن استنتاجه الآن |
+| --- | --- | --- |
+| جوع | Hungry | الجوع موجود في عدة مجموعات بيانات، لكن نسبته مرتفعة جدًا في بعض المجموعات؛ قد يتعلم النموذج عدم التوازن بدل سبب البكاء. |
+| مغص | Belly pain أو burping، وأحيانًا pain-like cry | ألم البطن أو الحاجة للتجشؤ لا يساويان تشخيص المغص. دراسة ChatterBaby اختبرت بكاءً وصفه الأهل بأنه مغص، لكنها لم تؤكد التشخيص طبيًا. |
+| ضيقة | Cry distress / مستوى الضيق | تصنيف شدة الضيق لا يحدد سببه، مثل الجوع أو المرض أو الحاجة للاحتواء. |
+| طالب الإحساس بحنان | Lonely أو isolation | هذه أقرب تسميات منشورة، لكنها ليست فئة صوتية مؤكدة؛ بعض البيانات تستعمل وصف المساهم نفسه. |
+| انزعاج | Discomfort أو fussiness | تسمية واسعة قد تشمل حفاضًا، حرارة، إرهاقًا، غازات، أو أسبابًا أخرى؛ ليست سببًا واحدًا واضحًا. |
+
+لا توجد قائمة عالمية واحدة معتمدة لأنواع «أصوات» البكاء. مجموعات البحث تستخدم تسميات مختلفة: مثل الجوع/الانزعاج/العزلة، أو الجوع/الألم/التعب/الحفاض، أو الجوع/التجشؤ/ألم البطن/الانزعاج/التعب. هذه الفئات تصف سياقات مختلفة ولا تتطابق واحدًا لواحد.
+
+إرشادات رعاية الأطفال تذكر أسبابًا عملية شائعة للمراجعة، مثل الجوع، الرغبة في الحضن، التعب، الغازات، الحفاض، الحرارة أو البرودة، والضوضاء أو التحفيز الزائد. وتوصي بملاحظة إشارات الجوع والسياق الجسدي؛ فهي قائمة احتياجات وليست تصنيفًا لصوت البكاء. كما أن إرشاد NHS يذكر أن البكاء قد يكون علامة متأخرة للجوع، وأن علامات الغازات لا تثبت وحدها وجود مغص.
+
+مصادر إرشادية: [NHS Trust: أسباب البكاء والتهدئة وعلامات طلب الرعاية](https://www.hey.nhs.uk/patient-leaflet/prolonged-purple-crying-in-babies-information-for-parents-and-carers/)؛ [NHS: المغص والرضاعة بالزجاجة](https://www.nhs.uk/best-start-in-life/baby/feeding-your-baby/bottle-feeding/bottle-feeding-challenges/colic-and-bottle-feeding/)؛ [NHS: إشارات الرضاعة](https://readytorelate.bdct.nhs.uk/toolkit/learning-cues/feeding-cues/)
+
+## نتائج أبحاث أولية
+
+### 1. تمييز الألم والجوع والانزعاج
+
+دراسة ChatterBaby المنشورة في *Pediatric Research* درّبت نموذجًا على مقاطع مدتها خمس ثوانٍ من 691 طفلًا للتمييز بين الجوع والانزعاج/الضيق والألم الحاد المرتبط بالتطعيم أو ثقب الأذن. كانت الدقة الإجمالية للفئات الثلاث 71.5%. وعند تحويل المهمة إلى ألم مقابل لا ألم، بلغت الحساسية 91% لكن النوعية 68%؛ أي أن نسبة غير قليلة من غير الألم قد تُصنّف خطأً على أنها ألم. وفي عينة منفصلة من 64 طفلًا، كان وصف المغص من الأهل لا من تشخيص سريري، وأعطى النموذج احتمالًا متوسطًا قدره 73% لتسمية الألم. هذا دليل بحثي على إشارات صوتية محتملة، وليس أداة لتشخيص المغص أو معرفة السبب لكل تسجيل منزلي.
+
+المصدر: [Parga et al., 2020, *Pediatric Research*](https://www.nature.com/articles/s41390-019-0592-4)
+
+### 2. أرقام مرتفعة على مجموعة صغيرة لا تكفي وحدها
+
+دراسة 2024 على مجموعة Donate-a-Cry استخدمت 457 مقطعًا أصليًا بفئات: جوع 382، تعب 24، تجشؤ 8، ألم بطن 16، وانزعاج 27. زادت الدراسة عينات الفئات الصغيرة بإضافة ضوضاء إلى 1,939 عينة، ثم أبلغت عن دقة 96.39% باستخدام ميزات MFCC ومصنف Random Forest على مقاطع مدتها خمس ثوانٍ، مع تقسيم 80/20 وتحقق متقاطع من 10 طيات. لكن عدد التسجيلات الأصلية قليل جدًا لبعض الفئات، ولا توجد هويات أطفال موثوقة لتكوين اختبار مستقل يترك أطفال التدريب خارج الاختبار.
+
+مستودع Donate-a-Cry يوضح أن التسجيلات رفعها المستخدمون دون فحص، وأن المساهمين هم من وضعوا الوسوم، بما فيها «السبب المشتبه به». كما أن معرف التسجيل في أسماء الملفات يحدد تثبيت التطبيق، لا هوية الطفل. لذلك لا تعني دقة 96.39% أن النموذج سيكون بهذه الدقة مع طفل جديد أو تسجيل هاتف منزلي.
+
+المصادر: [Hammoud et al., 2024, *Frontiers in Artificial Intelligence*](https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2024.1337356/full)؛ [وصف مجموعة Donate-a-Cry ووسومها](https://github.com/gveres/donateacry-corpus)
+
+### 3. اختبار عبر أطفال مختلفين يعطي نتيجة أقرب للتخمين
+
+دراسة طولية منشورة في *Communications Psychology* حللت 39,201 بكاءً من 24 طفلًا عبر الأشهر الأولى، مع ثلاث تسميات: جوع، عزلة، وانزعاج. بلغت دقة تصنيف السبب من الصوت 36% مقابل فرصة عشوائية تقارب 33% للفئات الثلاث. كما كانت دقة المستمعين البالغين، حتى بعد التدريب، نحو 35%. وعندما دُرّب النموذج على طفل واحد، لم تنتقل معرفة السبب بوضوح إلى أطفال آخرين.
+
+المصدر: [Lockhart-Bouron et al., 2023, *Communications Psychology*](https://www.nature.com/articles/s44271-023-00022-z)
+
+دراسة مؤتمر WOCCI لعام 2025 اختبرت تمثيلات نماذج صوت/كلام على ثماني مجموعات بيانات تضم إجمالًا 960 طفلًا. في مجموعة EnesBabyCries2 ذات 23 طفلًا وثلاث فئات للأسباب، تراوحت دقة السبب في اختبار ترك طفل خارج التدريب بين 41% و46%، مقابل نحو 33% كفرصة عشوائية. وذكر الباحثون أن النتائج على Donate-a-Cry غير موثوقة لغياب هوية الطفل، وأنهم لا يرون أن سبب البكاء يمكن تحديده من هذه النتائج حتى الآن.
+
+المصدر: [Bonafos et al., 2025, “Speech transformer models for extracting information from baby cries,” WOCCI](https://www.isca-archive.org/wocci_2025/bonafos25_wocci.pdf)
+
+### 4. الضيق قد يكون قابلًا للتمييز عن الهدوء، لكنه لا يحدد السبب
+
+دراسة استكشافية على 25 مولودًا سليمًا في المستشفى صنّفت مقاطع صوتية إلى حالات «راحة/بكاء/ضيق» وبلغت دقة 93% في تجربة الدراسة. لكنها قسمت وحدات البكاء عشوائيًا بين التدريب والتحقق، واستخدمت تسجيلًا منظمًا مع تقييمات فيديو ومقاييس طبية لتحديد الحالة. الفئة هنا مستوى الضيق، لا الجوع أو المغص أو الحاجة للحضن.
+
+المصدر: [Laguna et al., 2023, *Frontiers in Neuroscience*](https://www.frontiersin.org/journals/neuroscience/articles/10.3389/fnins.2023.1266873/full)
+
+## ما يعنيه ذلك للتسجيل ذي العشر ثواني
+
+تُظهر الأبحاث أن المقاطع الأقصر من 10 ثوانٍ يمكن استخدامها في التجارب، لذا مدة التسجيل نفسها ليست العائق الحاسم. لكن زيادة المدة لا تصلح تلقائيًا وسومًا غير مؤكدة أو نموذجًا لم يُختبر على أطفال وأجهزة جديدة. كما أن بعض الدراسات استخدمت معدل عينة وبيئة تسجيل مختلفة عن تطبيقنا، ولذلك يحتاج أي نموذج إلى اختبار منفصل على تسجيل التطبيق الفعلي.
+
+تجربة داخلية أولية على مجموعة Donate-a-Cry دعمت هذا التحفظ: عند تقسيم المقاطع عشوائيًا كان **macro-F1 = 0.30**، وانخفض إلى **0.17** عند تجميع المقاطع بحسب معرف تثبيت التطبيق. الدقة الكلية بقيت 0.67 في التقسيم المجمّع، لكنها أخفت فشل النموذج في الفئات النادرة. معرف التثبيت ليس هوية مؤكدة للطفل، لذا هذه ليست نتيجة سريرية أو اختبارًا صحيحًا عبر أطفال جدد؛ لكنها تؤكد أن الدقة الإجمالية وحدها قد تكون مضللة.
+
+## مراجعة نماذج جاهزة للاستخدام
+
+- يوفّر مشروع ChatterBaby تطبيقًا قائمًا، لكن فئاته المعلنة هي الجوع والانزعاج والألم، ويذكر أن التسجيلات تُرسل إلى خوادم UCLA وتُخزّن لأغراض البحث. كما يذكر أن المغص يُصنّف غالبًا على أنه ألم. لم أجد واجهة API عامة موثقة تسمح بدمجه في Baby Monitor، ولا يطابق فئاته الخمس المطلوبة. لذلك لن نرسل تسجيلات الطفل إليه من التطبيق.
+- بطاقة نموذج `AmeerHesham/distilhubert-finetuned-baby_cry` على Hugging Face تذكر أنه مدرّب على Donate-a-Cry، وأن الموازنة بـSMOTE تسبق تقسيمًا عشوائيًا 80/20. لا تعرض البطاقة اختبارًا يترك أطفالًا كاملين خارج التدريب، كما تذكر صفحة النموذج أنه غير مستضاف من مزوّد استدلال جاهز. يستضيف الخادم الخاص هذا النموذج للتجربة فقط؛ الدرجة الرقمية هي خرج غير معاير، ولا توجد بيانات تثبت أنها تمثل احتمالية صحة السبب.
+- نموذج `dontcryai/dontcry` يطلب مشاركة بيانات التواصل للوصول إلى الملفات، وصفحته تذكر أيضًا أنه غير مستضاف من مزوّد استدلال. لذلك لا يصلح كخدمة متاحة مباشرة للتطبيق.
+- دراسة أولية منشورة في أغسطس 2026 اختبرت عدة تمثيلات صوتية على Donate-a-Cry، وذكرت أن الأداء في تحديد سبب البكاء بقي قريبًا من الصدفة عند فصل التقييم بحسب الطفل. هذه نتيجة أولية غير محكّمة، لكنها تتوافق مع مشكلات التحقق من هوية الطفل والوسوم في هذه المجموعة.
+
+يحتوي الفرع الآن على تجربة Safari خاصة بخادم HTTPS على Railway ورمز دخول؛ لا يُرسل الصوت إلا بعد موافقة منفصلة لكل تسجيل. تعرض الخدمة الفئة الأعلى ودرجة خامًا من 0 إلى 100 لا تمثل احتمالًا طبيًا. لا يميّز النموذج احتياج الطفل للحنان أو مستوى الضيق، ولا يساوي ألم البطن تشخيص المغص. تحتاج النسخ الأصلية إلى إعداد Firebase واتصالها بالخادم، لذلك تبقى الميزة غير مفعّلة في البناء الأصلي الافتراضي. هذا المسار غير جاهز لاستخدامه مع الجمهور. راجع أيضًا [إشعار النموذج والبيانات](../backend/MODEL_NOTICE.md) و[خطوات إعداد تجربة الهاتف](preview-setup.md).
+
+أزرار الإرشاد الخمسة في صفحة الصوت تشرح احتياجات يراجعها الأهل: الجوع، والمغص/الغازات، وعدم الارتياح، والحاجة للحنان، والتضايق من زيادة المؤثرات. ترتبط بمقاطع تعليمية من [برنامج Minnesota WIC الرسمي](https://www.health.mn.gov/docs/people/wic/localagency/bb/clipdescript.pdf) وتوافق أسباب البكاء العملية المذكورة في [إرشاد NHS](https://www.nhs.uk/baby/caring-for-a-newborn/soothing-a-crying-baby/). مقطع المغص فيديو عام عن البكاء وليس تسجيلًا يثبت تشخيص المغص؛ ولا تتطابق فئات الأزرار مع فئات النموذج البحثي.
+
+المصادر: [ChatterBaby FAQ](https://www.chatterbaby.org/pages/faq)؛ [ChatterBaby عن البيانات والبحث](https://www.chatterbaby.org/pages/aboutus)؛ [بطاقة نموذج AmeerHesham على Hugging Face](https://huggingface.co/AmeerHesham/distilhubert-finetuned-baby_cry)؛ [بطاقة نموذج dontcryai على Hugging Face](https://huggingface.co/dontcryai/dontcry)؛ [دراسة Donate-a-Cry الأولية لعام 2026](https://arxiv.org/abs/2608.30456).
+
+## متطلبات قبل توسيع تجربة التنبؤ الصوتي أو نشرها
+
+1. تعريف كل فئة بطريقة واضحة ومراجعتها مع مختص أطفال؛ خصوصًا الفرق بين المغص وألم البطن والغازات، وبين الضيق/التوتر والانزعاج الجسدي.
+2. جمع أمثلة كثيرة بموافقة ولي الأمر، من أطفال متعددين وأعمار وأجهزة وبيئات منزلية متنوعة، مع توثيق سياق الرضعة والحفاض والتهدئة بدل الاعتماد على تخمين المساهم وحده.
+3. تقييم النموذج باختبار يترك أطفالًا كاملين خارج التدريب، ثم تجربة مستقلة في المنزل؛ والإبلاغ عن نتائج كل فئة، لا الدقة الإجمالية فقط.
+4. قياس معايرة الثقة على بيانات مستقلة وتفعيل فئة «غير واضح» حين لا يثبت الدليل؛ لا تُعرض درجات Softmax كنسب احتمال. لا يحل أي تحليل صوتي محل تقييم الطبيب أو الاستجابة لعلامات الخطر.
+
+## Additional research review (21 September 2026)
+
+The cry labels below are research categories, not reliable acoustic signatures that a caregiver can identify by ear. A clip that sounds high-pitched, rhythmic, strained, or loud does not prove hunger, colic, pain, or a need for comfort. The same infant's cry changes with age and context, and sound recordings can carry the baby's identity as well as other acoustic information.
+
+| Research set or study | Cry labels studied | What it supports—and what it does not |
+| --- | --- | --- |
+| Donate-a-Cry corpus (457 clips; used by the current preview model) | Hungry, tired, burping, belly pain, discomfort | The source distribution is strongly imbalanced: 382 hunger clips, versus 24 tired, 8 burping, 16 belly-pain, and 27 discomfort clips. Published validation on this small corpus does not establish accuracy for a new child or a phone recording. |
+| EnesBabyCries2 / 2023 home recordings | Hunger, discomfort, isolation | The 2023 study examined 39,201 cries from 24 infants recorded at home. Labels were inferred from caregiver assessments/actions, not medical confirmation. Its authors found that neither listeners nor their machine-learning models reliably recognized cause. |
+| WOCCI 2025 speech-transformer study | Hunger, discomfort, isolation (EnesBabyCries2) | In leave-one-baby-out evaluation, tested representations reached about 41–46% cause accuracy across these three classes (33% chance level). The paper also cautions that cause results on Donate-a-Cry are unreliable because baby identity is not known. This is early research, not a test of this app's model. |
+
+The preview model covers hunger, belly pain, burping, general discomfort, and tiredness. It has no separate label for affection/comfort or distress. The app's 0–100 display is the top softmax output from this model; no independent calibration or clinical validation exists for the app, the 10-second recordings, or new babies. A high displayed score must not be read as a high chance that the suggested cause is true.
+
+For caregivers, use the audio estimate alongside observable cues (feeding, sleep, diaper, temperature, comfort) and the safety guidance in the app. The recording cannot rule out illness. Follow emergency guidance and contact a clinician when concerned.
+
+### Sources
+
+- Hammoud et al., “Machine learning-based infant crying interpretation,” *Frontiers in Artificial Intelligence* (2024): https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2024.1337356/full
+- Orlandi et al., “Infant cries convey both stable and dynamic information about age and identity,” *Communications Psychology* (2023): https://pmc.ncbi.nlm.nih.gov/articles/PMC11332224/
+- Bonafos et al., “Speech transformer models for extracting information from baby cries,” *WOCCI 2025*: https://www.isca-archive.org/wocci_2025/bonafos25_wocci.pdf
+- Current preview model card: https://huggingface.co/AmeerHesham/distilhubert-finetuned-baby_cry

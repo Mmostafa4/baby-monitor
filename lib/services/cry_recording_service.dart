@@ -3,40 +3,58 @@ import 'dart:typed_data';
 
 import 'package:record/record.dart';
 
+import 'audio_signal.dart';
+
+/// Captures microphone audio locally and exposes an in-memory WAV preview.
 class CryRecordingService {
   final AudioRecorder _recorder = AudioRecorder();
-  StreamSubscription<Uint8List>? _audioSubscription;
+  StreamSubscription<dynamic>? _subscription;
+  BytesBuilder _audioData = BytesBuilder(copy: false);
   bool _hasPendingCleanup = false;
+  Object? _streamError;
+  int _capturedBytes = 0;
 
   bool get hasPendingCleanup => _hasPendingCleanup;
+  int get capturedBytes => _capturedBytes;
+  Object? get streamError => _streamError;
 
   Future<void> start() async {
     if (_hasPendingCleanup) await cancel();
 
     if (!await _recorder.hasPermission()) {
-      throw const CryRecordingException('نحتاج إذن الميكروفون لبدء التسجيل.');
+      throw const CryRecordingException(
+        'لم يُمنح إذن الميكروفون. اسمحي به من إعدادات الجهاز أو المتصفح ثم أعيدي المحاولة.',
+      );
     }
 
     if (await _recorder.isRecording()) {
       throw const CryRecordingException('يوجد تسجيل جارٍ بالفعل.');
     }
 
+    _audioData = BytesBuilder(copy: false);
+    _capturedBytes = 0;
+    _streamError = null;
+
     try {
-      final audioStream = await _recorder.startStream(
+      final stream = await _recorder.startStream(
         const RecordConfig(
           encoder: AudioEncoder.pcm16bits,
           numChannels: 1,
           sampleRate: 16000,
         ),
       );
-
-      // Consume each chunk immediately and keep no audio bytes in memory.
-      _audioSubscription = audioStream.listen((_) {});
       _hasPendingCleanup = true;
+      _subscription = stream.listen(
+        (chunk) {
+          _capturedBytes += chunk.length;
+          _audioData.add(chunk);
+        },
+        onError: (Object error) {
+          _streamError = error;
+        },
+      );
     } catch (_) {
       try {
-        await _audioSubscription?.cancel();
-        _audioSubscription = null;
         await _recorder.cancel();
         _hasPendingCleanup = false;
       } catch (_) {
@@ -46,26 +64,89 @@ class CryRecordingService {
     }
   }
 
-  /// Stop capture and discard it. This MVP has no analysis backend, so audio
-  /// is never retained or uploaded.
-  Future<void> stopAndDelete() async {
+  /// Stops the microphone and returns captured PCM as a WAV held in memory.
+  Future<Uint8List?> stopAndGetWav() async {
     final isRecording = await _recorder.isRecording();
-    if (!isRecording && !_hasPendingCleanup && _audioSubscription == null) {
-      return;
-    }
+    if (!isRecording && !_hasPendingCleanup) return null;
 
     try {
-      await _audioSubscription?.cancel();
-      _audioSubscription = null;
-      await _recorder.cancel();
+      await _recorder.stop();
+      await _subscription?.cancel();
+      _subscription = null;
       _hasPendingCleanup = false;
+      final pcm = _audioData.takeBytes();
+      _audioData = BytesBuilder(copy: false);
+      if (pcm.isEmpty) return null;
+      try {
+        if (!hasAudiblePcm16Signal(pcm)) {
+          throw const CryRecordingException(
+            'لم نلتقط صوتًا واضحًا. قرّبي الهاتف من الطفل وتحققي من إذن الميكروفون ثم أعيدي التسجيل.',
+          );
+        }
+        return _wavFromPcm16(pcm);
+      } finally {
+        pcm.fillRange(0, pcm.length, 0);
+      }
+    } on CryRecordingException {
+      rethrow;
     } catch (_) {
       _hasPendingCleanup = true;
-      throw const CryRecordingException('تعذر إنهاء التسجيل بأمان. حاول مرة أخرى.');
+      throw const CryRecordingException(
+        'تعذر إنهاء التسجيل. تحققي من الميكروفون وحاولي مرة أخرى.',
+      );
     }
   }
 
-  Future<void> cancel() => stopAndDelete();
+  Uint8List _wavFromPcm16(Uint8List pcm) {
+    const sampleRate = 16000;
+    const channels = 1;
+    const bitsPerSample = 16;
+    const blockAlign = channels * bitsPerSample ~/ 8;
+    const byteRate = sampleRate * blockAlign;
+
+    final wav = Uint8List(44 + pcm.length);
+    final header = ByteData.sublistView(wav);
+    void writeText(int offset, String value) {
+      for (var index = 0; index < value.length; index++) {
+        wav[offset + index] = value.codeUnitAt(index);
+      }
+    }
+
+    writeText(0, 'RIFF');
+    header.setUint32(4, 36 + pcm.length, Endian.little);
+    writeText(8, 'WAVE');
+    writeText(12, 'fmt ');
+    header.setUint32(16, 16, Endian.little);
+    header.setUint16(20, 1, Endian.little);
+    header.setUint16(22, channels, Endian.little);
+    header.setUint32(24, sampleRate, Endian.little);
+    header.setUint32(28, byteRate, Endian.little);
+    header.setUint16(32, blockAlign, Endian.little);
+    header.setUint16(34, bitsPerSample, Endian.little);
+    writeText(36, 'data');
+    header.setUint32(40, pcm.length, Endian.little);
+    wav.setRange(44, wav.length, pcm);
+    return wav;
+  }
+
+  Future<void> cancel() async {
+    final isRecording = await _recorder.isRecording();
+    if (!isRecording && !_hasPendingCleanup) return;
+
+    try {
+      await _recorder.cancel();
+      await _subscription?.cancel();
+      _subscription = null;
+      final discardedAudio = _audioData.takeBytes();
+      discardedAudio.fillRange(0, discardedAudio.length, 0);
+      _hasPendingCleanup = false;
+    } catch (_) {
+      _hasPendingCleanup = true;
+      throw const CryRecordingException(
+        'تعذر إيقاف التسجيل. أغلقي الصفحة ثم أعيدي المحاولة.',
+      );
+    }
+  }
 
   Future<void> dispose() async {
     try {

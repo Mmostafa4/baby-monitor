@@ -1,0 +1,17 @@
+services:
+  cry-analysis-preview:
+    build: .
+    env_file: .env
+    environment:
+      FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account.json
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1g
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
