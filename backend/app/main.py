@@ -117,8 +117,11 @@ class DemoCallPeer:
     websocket: WebSocket
     role: str = ""
     display_name: str = ""
+    doctor_level: str = ""
+    policy_accepted: bool = False
     available: bool = False
     partner_id: str | None = None
+    suspended: bool = False
 
 
 _limit_lock = threading.Lock()
@@ -126,6 +129,7 @@ _user_limits: dict[str, RequestLimit] = defaultdict(lambda: RequestLimit(deque()
 _global_requests: deque[float] = deque()
 _demo_call_lock = asyncio.Lock()
 _demo_call_peers: dict[str, DemoCallPeer] = {}
+_DEMO_DOCTOR_LEVELS = {"أخصائي", "استشاري"}
 
 
 def _valid_beta_session(value: str | None) -> bool:
@@ -418,7 +422,7 @@ async def _finish_demo_pair(peer: DemoCallPeer, message: dict[str, Any]) -> None
     if partner is not None:
         partner.partner_id = None
         if partner.role == "doctor":
-            partner.available = True
+            partner.available = not partner.suspended
         await _send_demo_message(partner_id, message)
 
 
@@ -444,7 +448,14 @@ async def _handle_demo_message(client_id: str, message: Any) -> None:
                 if isinstance(display_name, str) and display_name.strip()
                 else ("طبيب تجريبي" if role == "doctor" else "مستخدم التجربة")
             )
-            peer.available = role == "doctor" and message.get("available") is True
+            doctor_level = message.get("doctor_level")
+            peer.doctor_level = (
+                doctor_level.strip()
+                if isinstance(doctor_level, str) and doctor_level.strip() in _DEMO_DOCTOR_LEVELS
+                else ""
+            )
+            peer.policy_accepted = bool(message.get("policy_accepted"))
+            peer.available = False
             await _send_demo_message(
                 client_id,
                 {
@@ -464,13 +475,33 @@ async def _handle_demo_message(client_id: str, message: Any) -> None:
             if peer.role != "doctor":
                 await _send_demo_message(client_id, {"type": "error", "message": "هذا الأمر متاح لوضع الطبيب فقط."})
                 return
+            if peer.suspended:
+                await _send_demo_message(client_id, {"type": "error", "message": "تم إيقاف جلسة الطبيب بسبب مخالفة سياسة التواصل."})
+                return
             if peer.partner_id is not None:
                 await _send_demo_message(client_id, {"type": "error", "message": "أنهي المكالمة الحالية أولًا."})
                 return
-            peer.available = bool(message.get("available"))
             display_name = message.get("display_name")
-            if isinstance(display_name, str) and display_name.strip():
-                peer.display_name = " ".join(display_name.strip().split())[:60]
+            normalized_name = " ".join(display_name.strip().split()) if isinstance(display_name, str) else ""
+            doctor_level = message.get("doctor_level")
+            normalized_level = doctor_level.strip() if isinstance(doctor_level, str) else ""
+            accepted = bool(message.get("policy_accepted"))
+            if message.get("available") is True and (
+                len(normalized_name) < 2
+                or normalized_level not in _DEMO_DOCTOR_LEVELS
+                or not accepted
+            ):
+                await _send_demo_message(
+                    client_id,
+                    {"type": "error", "message": "أكملي اسم الطبيب، الصفة، والموافقة على سياسة التواصل قبل الظهور أونلاين."},
+                )
+                return
+            if normalized_name:
+                peer.display_name = normalized_name[:60]
+            if normalized_level in _DEMO_DOCTOR_LEVELS:
+                peer.doctor_level = normalized_level
+            peer.policy_accepted = accepted
+            peer.available = bool(message.get("available"))
             await _send_demo_message(
                 client_id,
                 {"type": "online", "available": peer.available, "display_name": peer.display_name},
@@ -480,6 +511,9 @@ async def _handle_demo_message(client_id: str, message: Any) -> None:
         if message_type == "find_doctor":
             if peer.role != "patient":
                 await _send_demo_message(client_id, {"type": "error", "message": "ابحثي عن الطبيب من وضع المستخدم."})
+                return
+            if not peer.policy_accepted:
+                await _send_demo_message(client_id, {"type": "error", "message": "وافقي على سياسة التواصل قبل البحث عن طبيب."})
                 return
             if peer.partner_id is not None:
                 await _send_demo_message(client_id, {"type": "error", "message": "لديك طلب أو مكالمة قائمة بالفعل."})
@@ -491,6 +525,7 @@ async def _handle_demo_message(client_id: str, message: Any) -> None:
                     if candidate_id != client_id
                     and candidate.role == "doctor"
                     and candidate.available
+                    and not candidate.suspended
                     and candidate.partner_id is None
                 ),
                 None,
@@ -499,6 +534,9 @@ async def _handle_demo_message(client_id: str, message: Any) -> None:
                 await _send_demo_message(client_id, {"type": "no_doctor"})
                 return
             doctor = _demo_call_peers[doctor_id]
+            doctor_label = doctor.display_name or "طبيب تجريبي"
+            if doctor.doctor_level:
+                doctor_label += " — " + doctor.doctor_level
             peer.partner_id = doctor_id
             doctor.partner_id = client_id
             doctor.available = False
@@ -507,7 +545,7 @@ async def _handle_demo_message(client_id: str, message: Any) -> None:
                 {
                     "type": "matched",
                     "partner_id": doctor_id,
-                    "display_name": doctor.display_name or "طبيب تجريبي",
+                    "display_name": doctor_label,
                 },
             )
             await _send_demo_message(
@@ -518,6 +556,29 @@ async def _handle_demo_message(client_id: str, message: Any) -> None:
                     "display_name": "مستخدم التجربة",
                 },
             )
+            return
+
+        if message_type == "policy_update":
+            peer.policy_accepted = bool(message.get("accepted"))
+            return
+
+        if message_type == "report_contact_exchange":
+            if peer.partner_id is None:
+                await _send_demo_message(client_id, {"type": "error", "message": "لا توجد جلسة قائمة للإبلاغ عنها."})
+                return
+            partner_id = peer.partner_id
+            partner = _demo_call_peers.get(partner_id)
+            doctor_id = client_id if peer.role == "doctor" else partner_id
+            doctor = _demo_call_peers.get(doctor_id)
+            if doctor is not None and doctor.role == "doctor":
+                doctor.available = False
+                doctor.suspended = True
+                await _send_demo_message(
+                    doctor_id,
+                    {"type": "doctor_suspended"},
+                )
+            await _finish_demo_pair(peer, {"type": "policy_ended"})
+            await _send_demo_message(client_id, {"type": "report_received"})
             return
 
         if message_type in {"accept", "reject"}:

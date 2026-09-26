@@ -69,13 +69,14 @@
     .choice { display: grid; gap: 10px; }
     .hidden { display: none !important; }
     label { display: block; margin: 12px 0 6px; font-weight: 700; }
-    input {
+    input, select {
       width: 100%;
       min-height: 48px;
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 10px 12px;
       font: inherit;
+      background: #fff;
     }
     .pill {
       display: inline-block;
@@ -92,6 +93,21 @@
     audio { width: 100%; margin-top: 12px; }
     .small { font-size: .88rem; }
     ul { margin: 8px 0; padding-inline-start: 20px; line-height: 1.8; }
+    .policy {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 16px 0 8px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .policy input {
+      width: 20px;
+      min-height: 20px;
+      margin: 4px 0 0;
+      accent-color: var(--blue);
+    }
+    .policy label { margin: 0; font-weight: 500; }
   </style>
 </head>
 <body>
@@ -104,6 +120,7 @@
     <section class="card notice">
       <strong>هذه تجربة تقنية فقط</strong>
       <p class="small">لا يوجد دفع أو بطاقة أو اشتراك في هذه الصفحة. لا يوجد طبيب حقيقي متصل بهذه النسخة، ولا تُستخدم للتشخيص أو للطوارئ. المكالمة لا تُسجّل بواسطة التطبيق.</p>
+      <p class="small"><strong>سياسة التواصل:</strong> ممنوع طلب أو تبادل أرقام الهاتف أو أي وسيلة تواصل خارج التطبيق. يوجد زر إبلاغ لإنهاء الجلسة فورًا عند وجود مخالفة.</p>
     </section>
 
     <section id="role-card" class="card">
@@ -119,17 +136,32 @@
       <h2>وضع المستخدم</h2>
       <span id="patient-pill" class="pill">جارٍ الاتصال بالخدمة...</span>
       <p id="patient-status" class="status">جارٍ تجهيز الاتصال...</p>
+      <div class="policy">
+        <input id="patient-policy" type="checkbox">
+        <label for="patient-policy">أتعهد بعدم طلب أو مشاركة رقم الهاتف أو أي وسيلة تواصل خارج التطبيق.</label>
+      </div>
       <button class="primary" id="find-doctor" disabled>ابحث عن طبيب متصل</button>
       <button class="danger hidden" id="patient-hangup">إنهاء المكالمة</button>
+      <button class="danger hidden" id="patient-report">إبلاغ عن طلب رقم أو مخالفة</button>
       <audio id="patient-remote" autoplay playsinline></audio>
     </section>
 
     <section id="doctor-card" class="card hidden">
       <h2>وضع الطبيب التجريبي</h2>
-      <label for="doctor-name">اسم العرض</label>
-      <input id="doctor-name" maxlength="60" value="د. سارة — تجربة">
-      <p id="doctor-status" class="status">أغلقي هذا الوضع عند انتهاء الاختبار.</p>
-      <button class="doctor" id="doctor-online">تشغيل استقبال الطلبات</button>
+      <label for="doctor-name">الاسم الثنائي أو اسم الشهرة</label>
+      <input id="doctor-name" maxlength="60" placeholder="مثال: د. أحمد محمد أو د. أحمد">
+      <label for="doctor-level">صفة الطبيب</label>
+      <select id="doctor-level">
+        <option value="">اختار الصفة</option>
+        <option value="أخصائي">أخصائي أطفال</option>
+        <option value="استشاري">استشاري أطفال</option>
+      </select>
+      <div class="policy">
+        <input id="doctor-policy" type="checkbox">
+        <label for="doctor-policy">أتعهد بعدم طلب أو مشاركة أرقام الهاتف أو أي وسيلة تواصل خارج التطبيق، وأوافق على إيقاف الحساب عند ثبوت المخالفة.</label>
+      </div>
+      <p id="doctor-status" class="status">أكملي بيانات الطبيب ووافقي على السياسة لفتح الاستقبال.</p>
+      <button class="doctor" id="doctor-online" disabled>تشغيل استقبال الطلبات</button>
       <div id="incoming-card" class="card warning hidden">
         <strong>يوجد طلب اتصال تجريبي</strong>
         <p id="incoming-text" class="small">المستخدم ينتظر قبول المكالمة.</p>
@@ -139,6 +171,7 @@
         </div>
       </div>
       <button class="danger hidden" id="doctor-hangup">إنهاء المكالمة</button>
+      <button class="danger hidden" id="doctor-report">إبلاغ عن طلب رقم أو مخالفة</button>
       <audio id="doctor-remote" autoplay playsinline></audio>
     </section>
 
@@ -153,7 +186,6 @@
       <p class="small">تحتاج المكالمة إلى HTTPS وميكروفون مسموح. بعض الشبكات قد تمنع الاتصال المباشر؛ جرّبي الجهازين على نفس شبكة Wi‑Fi أولًا.</p>
     </section>
 
-    <a class="button secondary" href="/app/">العودة إلى التطبيق</a>
   </main>
 
   <script>
@@ -167,15 +199,20 @@
       const patientStatus = document.getElementById('patient-status');
       const doctorStatus = document.getElementById('doctor-status');
       const patientPill = document.getElementById('patient-pill');
+      const patientPolicy = document.getElementById('patient-policy');
       const findDoctor = document.getElementById('find-doctor');
       const patientHangup = document.getElementById('patient-hangup');
+      const patientReport = document.getElementById('patient-report');
       const doctorOnline = document.getElementById('doctor-online');
       const doctorHangup = document.getElementById('doctor-hangup');
+      const doctorReport = document.getElementById('doctor-report');
       const incomingCard = document.getElementById('incoming-card');
       const incomingText = document.getElementById('incoming-text');
       const acceptCall = document.getElementById('accept-call');
       const rejectCall = document.getElementById('reject-call');
       const doctorName = document.getElementById('doctor-name');
+      const doctorLevel = document.getElementById('doctor-level');
+      const doctorPolicy = document.getElementById('doctor-policy');
       const patientRemote = document.getElementById('patient-remote');
       const doctorRemote = document.getElementById('doctor-remote');
 
@@ -196,6 +233,35 @@
       function setStatus(target, message, error = false) {
         target.textContent = message;
         target.classList.toggle('error', error);
+      }
+
+      function doctorProfileReady() {
+        return doctorName.value.trim().length >= 2
+          && doctorLevel.value !== ''
+          && doctorPolicy.checked;
+      }
+
+      function updateDoctorControls() {
+        doctorOnline.disabled = !online && (
+          !doctorProfileReady()
+          || !socket
+          || socket.readyState !== WebSocket.OPEN
+        );
+      }
+
+      function updatePatientControls() {
+        findDoctor.disabled = !clientId || !patientPolicy.checked || Boolean(partnerId);
+      }
+
+      function showReportButton() {
+        (role === 'doctor' ? doctorReport : patientReport).classList.remove('hidden');
+      }
+
+      function hideReportButtons() {
+        patientReport.classList.add('hidden');
+        doctorReport.classList.add('hidden');
+        patientReport.disabled = false;
+        doctorReport.disabled = false;
       }
 
       function showRole(selectedRole) {
@@ -235,7 +301,9 @@
           send({
             type: 'register',
             role,
-            display_name: role === 'doctor' ? doctorName.value.trim() : 'مستخدم التجربة'
+            display_name: role === 'doctor' ? doctorName.value.trim() : 'مستخدم التجربة',
+            doctor_level: role === 'doctor' ? doctorLevel.value : '',
+            policy_accepted: role === 'doctor' ? doctorPolicy.checked : patientPolicy.checked,
           });
         });
         socket.addEventListener('message', event => {
@@ -246,6 +314,7 @@
         socket.addEventListener('close', () => {
           clientId = null;
           findDoctor.disabled = true;
+          doctorOnline.disabled = true;
           setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'انقطع اتصال التجربة. أعيدي فتح الصفحة للمحاولة.', true);
         });
         socket.addEventListener('error', () => {
@@ -260,12 +329,13 @@
             break;
           case 'registered':
             if (role === 'patient') {
-              findDoctor.disabled = false;
+              updatePatientControls();
               patientPill.textContent = 'متصل بوضع التجربة';
               patientPill.classList.add('online');
               setStatus(patientStatus, 'جاهز للبحث عن طبيب تجريبي متصل.');
             } else {
-              setStatus(doctorStatus, 'تم فتح وضع الطبيب. شغّلي استقبال الطلبات.');
+              updateDoctorControls();
+              setStatus(doctorStatus, 'تم فتح وضع الطبيب. أكملي البيانات ثم شغّلي استقبال الطلبات.');
             }
             break;
           case 'online':
@@ -285,6 +355,7 @@
               incomingText.textContent = 'المستخدم ينتظر قبول مكالمة صوتية تجريبية.';
               setStatus(doctorStatus, 'يوجد طلب اتصال.');
             }
+            showReportButton();
             break;
           case 'accepted':
             if (role === 'patient') {
@@ -300,13 +371,17 @@
             incomingCard.classList.add('hidden');
             acceptCall.disabled = false;
             rejectCall.disabled = false;
-            findDoctor.disabled = false;
             await closePeer(false);
+            partnerId = null;
+            hideReportButtons();
+            updatePatientControls();
             setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'لم يتم قبول الطلب. جرّبي مرة أخرى.', true);
             break;
           case 'no_doctor':
-            findDoctor.disabled = false;
             await closePeer(false);
+            partnerId = null;
+            hideReportButtons();
+            updatePatientControls();
             setStatus(patientStatus, 'لا يوجد طبيب تجريبي متصل الآن. افتحي وضع الطبيب على جهاز ثانٍ ثم حاولي.', true);
             break;
           case 'signal':
@@ -316,14 +391,34 @@
             await closePeer(false);
             partnerId = null;
             incomingCard.classList.add('hidden');
+            hideReportButtons();
             if (role === 'doctor') {
               setStatus(doctorStatus, 'انتهت المكالمة. ما زلتِ متاحة لاستقبال طلب جديد.');
               doctorHangup.classList.add('hidden');
             } else {
-              findDoctor.disabled = false;
+              updatePatientControls();
               setStatus(patientStatus, 'انتهت المكالمة التجريبية.');
               patientHangup.classList.add('hidden');
             }
+            break;
+          case 'policy_ended':
+            await closePeer(false);
+            partnerId = null;
+            incomingCard.classList.add('hidden');
+            hideReportButtons();
+            updatePatientControls();
+            setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'تم إنهاء الجلسة بسبب بلاغ متعلق بسياسة التواصل.', true);
+            break;
+          case 'report_received':
+            setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'تم تسجيل البلاغ وإنهاء الجلسة للمراجعة.', true);
+            break;
+          case 'doctor_suspended':
+            online = false;
+            doctorOnline.disabled = true;
+            doctorOnline.textContent = 'تم إيقاف حساب التجربة';
+            incomingCard.classList.add('hidden');
+            hideReportButtons();
+            setStatus(doctorStatus, 'تم إيقاف جلسة الطبيب التجريبية فورًا بسبب مخالفة سياسة التواصل.', true);
             break;
           case 'error':
             setStatus(role === 'doctor' ? doctorStatus : patientStatus, message.message || 'حدث خطأ في تجربة الاتصال.', true);
@@ -419,17 +514,32 @@
 
       findDoctor.addEventListener('click', () => {
         (async () => {
+          if (!patientPolicy.checked) {
+            setStatus(patientStatus, 'وافقي على سياسة التواصل أولًا.', true);
+            return;
+          }
           if (!await ensureLocalStream()) return;
           setStatus(patientStatus, 'جارٍ البحث عن طبيب تجريبي متصل...');
           findDoctor.disabled = true;
+          send({ type: 'policy_update', accepted: true });
           send({ type: 'find_doctor' });
         })();
       });
 
       doctorOnline.addEventListener('click', () => {
         if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        if (!online && !doctorProfileReady()) {
+          setStatus(doctorStatus, 'اكتبي الاسم، اختاري الصفة، ووافقي على سياسة التواصل أولًا.', true);
+          return;
+        }
         online = !online;
-        send({ type: 'set_online', available: online, display_name: doctorName.value.trim() });
+        send({
+          type: 'set_online',
+          available: online,
+          display_name: doctorName.value.trim(),
+          doctor_level: doctorLevel.value,
+          policy_accepted: doctorPolicy.checked,
+        });
       });
 
       acceptCall.addEventListener('click', async () => {
@@ -458,6 +568,27 @@
         send({ type: 'hangup' });
         doctorHangup.classList.add('hidden');
         setStatus(doctorStatus, 'أنهيتِ المكالمة. ما زلتِ متاحة لاستقبال طلب جديد.');
+      });
+
+      function reportContactExchange() {
+        if (!partnerId) return;
+        const button = role === 'doctor' ? doctorReport : patientReport;
+        button.disabled = true;
+        send({ type: 'report_contact_exchange' });
+        setStatus(role === 'doctor' ? doctorStatus : patientStatus, 'تم إرسال البلاغ وسيتم إنهاء الجلسة فورًا.', true);
+      }
+
+      patientReport.addEventListener('click', reportContactExchange);
+      doctorReport.addEventListener('click', reportContactExchange);
+      patientPolicy.addEventListener('change', () => {
+        updatePatientControls();
+        send({ type: 'policy_update', accepted: patientPolicy.checked });
+      });
+      doctorName.addEventListener('input', updateDoctorControls);
+      doctorLevel.addEventListener('change', updateDoctorControls);
+      doctorPolicy.addEventListener('change', () => {
+        updateDoctorControls();
+        send({ type: 'policy_update', accepted: doctorPolicy.checked });
       });
 
       window.addEventListener('beforeunload', () => {
