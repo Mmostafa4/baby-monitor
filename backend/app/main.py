@@ -416,6 +416,8 @@ async def _send_demo_message(peer_id: str, message: dict[str, Any]) -> None:
 async def _finish_demo_pair(peer: DemoCallPeer, message: dict[str, Any]) -> None:
     partner_id = peer.partner_id
     peer.partner_id = None
+    if peer.role == "doctor":
+        peer.available = not peer.suspended
     if partner_id is None:
         return
     partner = _demo_call_peers.get(partner_id)
