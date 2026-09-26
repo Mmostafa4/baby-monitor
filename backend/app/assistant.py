@@ -98,75 +98,107 @@ def safety_answer(question: str) -> str | None:
 
 
 def offline_answer(question: str) -> str:
-    """Return conservative local guidance when no text provider is configured."""
+    """Return useful, conservative guidance when the provider cannot answer.
+
+    This is intentionally deterministic and does not pretend to be a medical
+    diagnosis. It keeps the private beta responsive while provider quota or
+    connectivity is unavailable.
+    """
     normalized = " ".join(question.casefold().split())
 
     if any(term in normalized for term in ("نوم آمن", "ينام", "النوم", "سرير")):
         return (
-            "ضعي الطفل على ظهره في كل مرة للنوم، على سطح ثابت ومستوٍ، من دون وسائد "
-            "أو بطاطين رخوة أو ألعاب داخل مكان النوم. اجعلي الطفل في نفس الغرفة "
-            "لكن على سطح نوم منفصل، وتجنبي التدخين والحرارة الزائدة. إذا لاحظتِ "
-            "صعوبة تنفس أو تغيرًا في اللون فاطلبي الطوارئ فورًا."
+            "إرشادات النوم الآمن:\n"
+            "• ضعي الطفل على ظهره في كل مرة للنوم، على سطح ثابت ومستوٍ.\n"
+            "• اجعلي مكان النوم خاليًا من الوسائد والبطاطين الثقيلة والألعاب ومصدّات السرير.\n"
+            "• يفضّل أن يكون الطفل في نفس الغرفة، لكن على سطح نوم منفصل ومخصص له.\n"
+            "• تجنبي التدخين والحرارة الزائدة، ولا تنامي والطفل على أريكة أو كرسي.\n"
+            "إذا لاحظتِ صعوبة تنفس أو تغيرًا في اللون أو عدم استجابة، اطلبي الطوارئ فورًا. "
+            "هذه إرشادات عامة ولا تغني عن طبيب الأطفال."
         )
 
-    if any(term in normalized for term in ("رضاعة", "يرضع", "اللبن", "الحليب", "شبع")):
+    if any(term in normalized for term in ("رضاعة", "يرضع", "اللبن", "الحليب", "شبع", "جوع")):
         return (
-            "علامات الرضاعة الجيدة تشمل بلعًا مسموعًا، وهدوء الطفل بعد الرضعة، "
-            "وزيادة الحفاضات المبللة تدريجيًا بعد الأيام الأولى. لا تفرضي كمية "
-            "معينة ولا تعطي ماءً أو أعشابًا لحديث الولادة دون توجيه طبي. إذا كان "
-            "الطفل خاملًا أو لا يرضع أو يقل تبوله، تواصلي مع طبيب الأطفال اليوم."
+            "إرشادات الرضاعة:\n"
+            "• راقبي البلع والهدوء بعد الرضعة، ولا تعتمدي على البكاء وحده كعلامة جوع.\n"
+            "• قدّمي الرضعة حسب إشارات الجوع والشبع، ولا تفرضي كمية أو مدة ثابتة على كل طفل.\n"
+            "• راقبي الحفاضات المبللة والنشاط وزيادة الوزن في المتابعة الطبية.\n"
+            "• لا تعطي ماءً أو أعشابًا أو حليبًا غير موصوف لحديث الولادة.\n"
+            "إذا كان الطفل لا يرضع، خاملًا، يتقيأ باستمرار أو يقل تبوله، تواصلي مع طبيب الأطفال اليوم. "
+            "لا يحدد التطبيق كمية الرضعة أو بديل الحليب."
         )
 
-    if any(term in normalized for term in ("تجشؤ", "غازات", "انتفاخ", "مغص")):
+    if any(term in normalized for term in ("تجشؤ", "غازات", "انتفاخ", "مغص", "بطن")):
         return (
-            "يمكن حمل الطفل بوضع قائم مع دعم الرأس والرقبة والتربيت بلطف بعد الرضعة، "
-            "مع تجنب هزّه أو الضغط على بطنه. لا تعطي قطرات أو أعشابًا دون سؤال طبيب "
-            "الأطفال. إذا كان البكاء شديدًا مستمرًا أو صاحبه قيء متكرر أو انتفاخ واضح، "
-            "اطلبي تقييمًا طبيًا."
+            "للتجشؤ والغازات:\n"
+            "• احملي الطفل بوضع قائم مع دعم الرأس والرقبة بعد الرضعة.\n"
+            "• ربّتي برفق، وتوقفي إذا بدا عليه ألم أو ضيق.\n"
+            "• تجنبي هزّ الطفل أو الضغط على بطنه، ولا تعطي قطرات أو أعشابًا دون سؤال طبيب الأطفال.\n"
+            "اطلبي تقييمًا طبيًا إذا كان البكاء شديدًا أو مستمرًا، أو صاحبه قيء متكرر، انتفاخ واضح، "
+            "دم في البراز أو ضعف في الرضاعة."
         )
 
     if any(term in normalized for term in ("حفاض", "بول", "براز", "إمساك", "إسهال")):
         return (
-            "راقبي عدد الحفاضات المبللة وشكل البراز مقارنةً بالمعتاد، ونظفي الجلد "
-            "بلطف وغيّري الحفاض بانتظام. لا تعطي علاجًا للإمساك أو الإسهال من نفسك. "
-            "قلة البول، جفاف الفم، الخمول، وجود دم أو براز أبيض/أسود يستلزم التواصل "
-            "العاجل مع طبيب الأطفال."
+            "مراقبة الحفاضات:\n"
+            "• سجّلي عدد الحفاضات المبللة وشكل البراز مقارنةً بالمعتاد، خصوصًا في الأيام الأولى.\n"
+            "• غيّري الحفاض بانتظام ونظفي الجلد بلطف وجففيه دون فرك.\n"
+            "• لا تعطي علاجًا للإمساك أو الإسهال من نفسك.\n"
+            "قلة البول، جفاف الفم، الخمول، القيء المتكرر، وجود دم أو براز أبيض أو أسود يستلزم "
+            "التواصل العاجل مع طبيب الأطفال."
         )
 
     if any(term in normalized for term in ("الحرارة", "حراره", "درجة الحرارة", "حمى")):
         return (
-            "قيسي الحرارة بميزان موثوق وبطريقة ثابتة، وسجلي الرقم والوقت. لا تعطي "
-            "دواءً أو جرعة دون توجيه طبي. حرارة 38°م أو أكثر عند طفل أقل من 3 أشهر، "
-            "أو حرارة مع خمول أو صعوبة تنفس أو رفض للرضاعة، تحتاج تقييمًا عاجلًا."
+            "بخصوص الحرارة:\n"
+            "• قيسي الحرارة بميزان موثوق وبطريقة ثابتة، وسجّلي الرقم والوقت وطريقة القياس.\n"
+            "• لا تعطي دواءً أو جرعة ولا تستخدمي كمادات شديدة البرودة دون توجيه طبي.\n"
+            "• حرارة 38°م أو أكثر عند طفل أقل من 3 أشهر، أو حرارة مع خمول أو صعوبة تنفس أو رفض الرضاعة، "
+            "تحتاج تقييمًا عاجلًا.\n"
+            "التطبيق لا يفسر الرقم وحده ولا يستبدل الفحص الطبي."
         )
 
     if any(term in normalized for term in ("الصفراء", "يرقان", "اصفرار", "أصفر")):
         return (
-            "الاصفرار الخفيف قد يحدث عند بعض حديثي الولادة، لكن لا يمكن تقدير شدته "
-            "بالنظر فقط. راقبي انتشار الاصفرار إلى الساقين أو بياض العينين، والرضاعة "
-            "والنشاط. إذا ظهر خلال أول 24 ساعة، أو زاد سريعًا، أو صاحبه خمول أو ضعف "
-            "رضاعة، تواصلي مع طبيب الأطفال فورًا."
+            "بخصوص الصفراء:\n"
+            "• لا يمكن تقدير شدة الصفراء بالنظر فقط؛ قد يحتاج الطفل فحصًا أو قياسًا لدى الطبيب.\n"
+            "• راقبي الرضاعة والنشاط وانتشار الاصفرار إلى الساقين أو بياض العينين.\n"
+            "• ظهورها خلال أول 24 ساعة، أو زيادتها سريعًا، أو وجود خمول أو ضعف رضاعة يستلزم التواصل الفوري مع الطبيب.\n"
+            "لا تعرضي الطفل للشمس كعلاج ولا توقفي الرضاعة دون توجيه طبي."
         )
 
     if any(term in normalized for term in ("السرة", "الحبل السري", "الحبل")):
         return (
-            "حافظي على السرة جافة ونظيفة واتركيها تسقط وحدها، ولا تضعي عليها زيوتًا "
-            "أو مساحيق أو وصفات شعبية. اطلبي تقييمًا طبيًا إذا ظهر احمرار ممتد، أو "
-            "تورم، أو صديد، أو رائحة قوية، أو نزيف لا يتوقف."
+            "العناية بالسرة:\n"
+            "• حافظي على السرة جافة ونظيفة واتركيها تسقط وحدها.\n"
+            "• اطوي طرف الحفاض إلى أسفل حتى لا يحتك بها، ولا تضعي زيوتًا أو مساحيق أو وصفات شعبية.\n"
+            "• اطلبي تقييمًا طبيًا إذا ظهر احمرار ممتد، تورم، صديد، رائحة قوية أو نزيف لا يتوقف."
         )
 
     if any(term in normalized for term in ("بكاء", "عيط", "يبكي", "تهدئة")):
         return (
-            "ابدئي بالاحتياجات الأساسية: الرضاعة، الحفاض، التجشؤ، الحرارة والملابس، "
-            "ثم خففي الضوء والضوضاء واحملي الطفل بهدوء. لا تهزي الطفل أبدًا. إذا كان "
-            "البكاء غير معتاد أو مستمرًا مع قيء أو حرارة أو خمول، تواصلي مع طبيب الأطفال."
+            "عند بكاء الطفل:\n"
+            "• ابدئي بالرضاعة والحفاض والتجشؤ ودرجة حرارة المكان والملابس.\n"
+            "• خففي الضوء والضوضاء، واحملي الطفل بهدوء مع دعم الرأس والرقبة.\n"
+            "• لا تهزي الطفل أبدًا؛ ضعيه على ظهره في مكان آمن وابتعدي دقائق إذا شعرتِ بالإرهاق.\n"
+            "إذا كان البكاء غير معتاد أو مستمرًا مع قيء أو حرارة أو خمول أو تغير في اللون، تواصلي مع الطبيب أو الطوارئ."
+        )
+
+    if any(term in normalized for term in ("حمام", "استحمام", "جلد", "طفح")):
+        return (
+            "العناية اليومية:\n"
+            "• استخدمي ماءً فاترًا وتحققي من الحرارة بيدك، ولا تتركي الطفل وحده ولو لثوانٍ.\n"
+            "• جففي ثنيات الجلد بلطف وتجنبي العطور والوصفات غير الموصوفة.\n"
+            "• اطلبي تقييمًا طبيًا إذا كان الطفح منتشرًا، مع فقاعات أو تورم أو حرارة أو خمول.\n"
+            "لا يغني التطبيق عن تقييم طبيب الأطفال."
         )
 
     return (
-        "أستطيع تقديم إرشادات عامة محدودة في النسخة التجريبية حاليًا. لا أستطيع "
-        "التشخيص أو وصف دواء، ولا يغني التطبيق عن طبيب الأطفال. اكتبي سؤالًا عن "
-        "النوم الآمن أو الرضاعة أو الحفاضات أو التجشؤ أو الحرارة أو الصفراء. إذا "
-        "كانت هناك علامة خطر، توجهي للطوارئ فورًا."
+        "الرد الإرشادي في النسخة التجريبية:\n"
+        "أستطيع تقديم معلومات عامة عن النوم الآمن، الرضاعة، الحفاضات، التجشؤ والغازات، الحرارة، "
+        "الصفراء، السرة وتهدئة البكاء. ابدئي بالاحتياجات الأساسية وسجّلي أي تغير في الرضاعة أو النشاط أو البول.\n"
+        "لا أستطيع التشخيص أو وصف دواء أو جرعة، ولا يغني التطبيق عن طبيب الأطفال. إذا ظهرت صعوبة تنفس، "
+        "ازرقاق، تشنج، عدم استجابة، نزيف شديد أو حرارة 38°م فأعلى قبل عمر 3 أشهر، توجهي للطوارئ فورًا."
     )
 
 
@@ -244,18 +276,9 @@ def _extract_answer(payload: Any) -> str:
     return answer[:MAX_ANSWER_CHARS]
 
 
-async def generate_answer(question: str) -> str:
-    fixed_answer = safety_answer(question)
-    if fixed_answer is not None:
-        return fixed_answer
-
+async def _provider_response(question: str) -> Any:
+    """Call the configured provider without exposing question or answer data."""
     import httpx
-
-    if not provider_is_configured():
-        return offline_answer(question)
-    parsed_url = urlparse(AI_API_URL)
-    if parsed_url.scheme != "https" or not parsed_url.netloc:
-        raise AssistantUnavailable("Text-model service must use HTTPS.")
 
     headers = {
         "Authorization": "Bearer " + AI_API_KEY,
@@ -265,7 +288,7 @@ async def generate_answer(question: str) -> str:
     timeout = httpx.Timeout(25.0, connect=5.0)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
+            return await client.post(
                 AI_API_URL,
                 headers=headers,
                 json=_provider_payload(question),
@@ -273,13 +296,33 @@ async def generate_answer(question: str) -> str:
     except httpx.HTTPError as error:
         raise AssistantProviderError("Text-model provider is unreachable.") from error
 
+
+async def generate_answer(question: str) -> str:
+    fixed_answer = safety_answer(question)
+    if fixed_answer is not None:
+        return fixed_answer
+
+    if not provider_is_configured():
+        return offline_answer(question)
+    parsed_url = urlparse(AI_API_URL)
+    if parsed_url.scheme != "https" or not parsed_url.netloc:
+        raise AssistantUnavailable("Text-model service must use HTTPS.")
+
+    try:
+        response = await _provider_response(question)
+    except AssistantProviderError:
+        return offline_answer(question)
+
     if response.status_code == 429:
-        raise AssistantRateLimited("Text-model provider rate limit reached.")
+        return offline_answer(question)
     if response.status_code < 200 or response.status_code >= 300:
-        raise AssistantProviderError("Text-model provider rejected the request.")
+        return offline_answer(question)
 
     try:
         payload = response.json()
-    except ValueError as error:
-        raise AssistantProviderError("Text-model provider returned invalid JSON.") from error
-    return _extract_answer(payload)
+    except ValueError:
+        return offline_answer(question)
+    try:
+        return _extract_answer(payload)
+    except AssistantProviderError:
+        return offline_answer(question)
