@@ -53,7 +53,7 @@ Use the same defines with flutter build ios --release. The app asks for consent 
 
 ## Endpoints
 
-- GET /v1/health: returns `model_ready` for the cry model, `assistant_configured` for the optional text-model provider, and `assistant_available`/`assistant_mode` for the newborn assistant. When the provider secret is absent, the beta uses a conservative local guidance fallback (`assistant_mode=offline`) instead of dropping every question.
+- GET /v1/health: returns `model_ready` for the cry model, `assistant_configured` for the optional text-model provider, and `assistant_available`/`assistant_mode` for the newborn assistant. When the provider secret is absent, or the provider is temporarily unavailable/quota-limited, the beta uses a conservative local guidance fallback instead of dropping every question.
 - POST /v1/cry-analysis: authenticated multipart upload using field audio, mono 16 kHz 16-bit PCM WAV, 9.5–10.5 seconds, maximum 400 KB. Silent or near-silent audio is rejected before inference. Returns `category`, `advice`, `score_percent`, and `experimental`.
 - POST /v1/newborn-assistant: authenticated JSON with a `question` of 3–900 characters. Returns a general Arabic `answer`; it does not receive the local child profile or audio.
 
