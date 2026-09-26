@@ -2600,7 +2600,7 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
   final List<_AssistantMessage> messages = <_AssistantMessage>[];
   bool sending = false;
   bool assistantConsent = false;
-  bool? assistantProviderReady;
+  NewbornAssistantStatus? assistantStatus;
   String? error;
 
   @override
@@ -2610,8 +2610,8 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
   }
 
   Future<void> _refreshProviderStatus() async {
-    final ready = await service.checkProviderReady();
-    if (mounted) setState(() => assistantProviderReady = ready);
+    final status = await service.checkStatus();
+    if (mounted) setState(() => assistantStatus = status);
   }
 
   @override
@@ -2624,10 +2624,10 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
     final text = question.text.trim();
     if (sending || text.isEmpty) return;
 
-    if (!service.isConfigured || assistantProviderReady == false) {
+    if (!service.isConfigured || assistantStatus?.available != true) {
       setState(() {
         error =
-            'مزود المساعد الذكي غير مفعّل على الخادم؛ لم يُرسل سؤالك. يحتاج التطبيق إلى إعداد خدمة آمنة ومفتاحها على الخادم فقط.';
+            'خدمة المساعد غير متاحة الآن؛ لم يُرسل سؤالك. حاولي مرة أخرى بعد قليل.';
       });
       return;
     }
@@ -2667,16 +2667,12 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
       final answer = await service.ask(text);
       if (mounted) {
         setState(() {
-          assistantProviderReady = true;
           messages.add(_AssistantMessage(answer, false));
         });
       }
     } on NewbornAssistantException catch (exception) {
       if (mounted) {
         setState(() {
-          if (exception.message.contains('غير جاهزة')) {
-            assistantProviderReady = false;
-          }
           error = exception.message;
         });
       }
@@ -2707,11 +2703,13 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  assistantProviderReady == true
-                      ? 'المساعد متصل بخدمة آمنة. اكتبي سؤالًا عامًا دون اسم الطفل أو بيانات تعريفية.'
-                      : assistantProviderReady == false
-                          ? 'واجهة المساعد موجودة، لكن مزود النموذج غير مفعّل على الخادم بعد؛ لن يُرسل السؤال حتى يكتمل الإعداد.'
-                          : 'جارٍ التحقق من اتصال مزود المساعد…',
+                  assistantStatus?.providerConfigured == true
+                      ? 'المساعد متصل بخدمة ذكاء اصطناعي آمنة. اكتبي سؤالًا عامًا دون اسم الطفل أو بيانات تعريفية.'
+                      : assistantStatus?.isOffline == true
+                          ? 'المساعد الإرشادي المحلي متاح للتجربة الآن. مزود الذكاء الاصطناعي الخارجي غير مفعّل؛ لا تكتبي بيانات تعريفية.'
+                          : assistantStatus?.available == false
+                              ? 'خدمة المساعد غير متاحة الآن؛ حاولي مرة أخرى بعد قليل.'
+                              : 'جارٍ التحقق من اتصال المساعد…',
                 ),
                 const SizedBox(height: 6),
                 const Text(

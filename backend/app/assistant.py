@@ -13,6 +13,11 @@ AI_API_URL = os.getenv("BABY_MONITOR_AI_API_URL", "").strip()
 AI_API_KEY = os.getenv("BABY_MONITOR_AI_API_KEY", "").strip()
 AI_MODEL = os.getenv("BABY_MONITOR_AI_MODEL", "").strip()
 
+# The local fallback keeps the beta useful while an external provider is not
+# configured. It is deliberately a small, fixed guidance set; it is not
+# presented as a medical diagnosis or as a replacement for a text model.
+OFFLINE_ASSISTANT_VERSION = "local-safe-v1"
+
 
 class AssistantUnavailable(RuntimeError):
     """The optional text-model provider is not ready for this deployment."""
@@ -92,6 +97,79 @@ def safety_answer(question: str) -> str | None:
     return None
 
 
+def offline_answer(question: str) -> str:
+    """Return conservative local guidance when no text provider is configured."""
+    normalized = " ".join(question.casefold().split())
+
+    if any(term in normalized for term in ("نوم آمن", "ينام", "النوم", "سرير")):
+        return (
+            "ضعي الطفل على ظهره في كل مرة للنوم، على سطح ثابت ومستوٍ، من دون وسائد "
+            "أو بطاطين رخوة أو ألعاب داخل مكان النوم. اجعلي الطفل في نفس الغرفة "
+            "لكن على سطح نوم منفصل، وتجنبي التدخين والحرارة الزائدة. إذا لاحظتِ "
+            "صعوبة تنفس أو تغيرًا في اللون فاطلبي الطوارئ فورًا."
+        )
+
+    if any(term in normalized for term in ("رضاعة", "يرضع", "اللبن", "الحليب", "شبع")):
+        return (
+            "علامات الرضاعة الجيدة تشمل بلعًا مسموعًا، وهدوء الطفل بعد الرضعة، "
+            "وزيادة الحفاضات المبللة تدريجيًا بعد الأيام الأولى. لا تفرضي كمية "
+            "معينة ولا تعطي ماءً أو أعشابًا لحديث الولادة دون توجيه طبي. إذا كان "
+            "الطفل خاملًا أو لا يرضع أو يقل تبوله، تواصلي مع طبيب الأطفال اليوم."
+        )
+
+    if any(term in normalized for term in ("تجشؤ", "غازات", "انتفاخ", "مغص")):
+        return (
+            "يمكن حمل الطفل بوضع قائم مع دعم الرأس والرقبة والتربيت بلطف بعد الرضعة، "
+            "مع تجنب هزّه أو الضغط على بطنه. لا تعطي قطرات أو أعشابًا دون سؤال طبيب "
+            "الأطفال. إذا كان البكاء شديدًا مستمرًا أو صاحبه قيء متكرر أو انتفاخ واضح، "
+            "اطلبي تقييمًا طبيًا."
+        )
+
+    if any(term in normalized for term in ("حفاض", "بول", "براز", "إمساك", "إسهال")):
+        return (
+            "راقبي عدد الحفاضات المبللة وشكل البراز مقارنةً بالمعتاد، ونظفي الجلد "
+            "بلطف وغيّري الحفاض بانتظام. لا تعطي علاجًا للإمساك أو الإسهال من نفسك. "
+            "قلة البول، جفاف الفم، الخمول، وجود دم أو براز أبيض/أسود يستلزم التواصل "
+            "العاجل مع طبيب الأطفال."
+        )
+
+    if any(term in normalized for term in ("الحرارة", "حراره", "درجة الحرارة", "حمى")):
+        return (
+            "قيسي الحرارة بميزان موثوق وبطريقة ثابتة، وسجلي الرقم والوقت. لا تعطي "
+            "دواءً أو جرعة دون توجيه طبي. حرارة 38°م أو أكثر عند طفل أقل من 3 أشهر، "
+            "أو حرارة مع خمول أو صعوبة تنفس أو رفض للرضاعة، تحتاج تقييمًا عاجلًا."
+        )
+
+    if any(term in normalized for term in ("الصفراء", "يرقان", "اصفرار", "أصفر")):
+        return (
+            "الاصفرار الخفيف قد يحدث عند بعض حديثي الولادة، لكن لا يمكن تقدير شدته "
+            "بالنظر فقط. راقبي انتشار الاصفرار إلى الساقين أو بياض العينين، والرضاعة "
+            "والنشاط. إذا ظهر خلال أول 24 ساعة، أو زاد سريعًا، أو صاحبه خمول أو ضعف "
+            "رضاعة، تواصلي مع طبيب الأطفال فورًا."
+        )
+
+    if any(term in normalized for term in ("السرة", "الحبل السري", "الحبل")):
+        return (
+            "حافظي على السرة جافة ونظيفة واتركيها تسقط وحدها، ولا تضعي عليها زيوتًا "
+            "أو مساحيق أو وصفات شعبية. اطلبي تقييمًا طبيًا إذا ظهر احمرار ممتد، أو "
+            "تورم، أو صديد، أو رائحة قوية، أو نزيف لا يتوقف."
+        )
+
+    if any(term in normalized for term in ("بكاء", "عيط", "يبكي", "تهدئة")):
+        return (
+            "ابدئي بالاحتياجات الأساسية: الرضاعة، الحفاض، التجشؤ، الحرارة والملابس، "
+            "ثم خففي الضوء والضوضاء واحملي الطفل بهدوء. لا تهزي الطفل أبدًا. إذا كان "
+            "البكاء غير معتاد أو مستمرًا مع قيء أو حرارة أو خمول، تواصلي مع طبيب الأطفال."
+        )
+
+    return (
+        "أستطيع تقديم إرشادات عامة محدودة في النسخة التجريبية حاليًا. لا أستطيع "
+        "التشخيص أو وصف دواء، ولا يغني التطبيق عن طبيب الأطفال. اكتبي سؤالًا عن "
+        "النوم الآمن أو الرضاعة أو الحفاضات أو التجشؤ أو الحرارة أو الصفراء. إذا "
+        "كانت هناك علامة خطر، توجهي للطوارئ فورًا."
+    )
+
+
 SYSTEM_PROMPT = """
 أنت مساعد إرشادي عربي داخل تطبيق Baby Monitor لمقدمي رعاية الأطفال حديثي الولادة.
 أجب بالعربية الفصحى المبسطة وباختصار وبنبرة هادئة. قدم معلومات عامة فقط، ولا تشخّص
@@ -112,6 +190,14 @@ def provider_is_configured() -> bool:
         and parsed_url.scheme == "https"
         and parsed_url.netloc
     )
+
+
+def offline_assistant_available() -> bool:
+    return True
+
+
+def assistant_mode() -> str:
+    return "provider" if provider_is_configured() else "offline"
 
 
 def _provider_payload(question: str) -> dict[str, Any]:
@@ -166,7 +252,7 @@ async def generate_answer(question: str) -> str:
     import httpx
 
     if not provider_is_configured():
-        raise AssistantUnavailable("Text-model service is not configured.")
+        return offline_answer(question)
     parsed_url = urlparse(AI_API_URL)
     if parsed_url.scheme != "https" or not parsed_url.netloc:
         raise AssistantUnavailable("Text-model service must use HTTPS.")

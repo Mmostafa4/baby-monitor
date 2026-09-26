@@ -3,6 +3,7 @@ import unittest
 from app.assistant import (
     MAX_QUESTION_CHARS,
     _extract_answer,
+    offline_answer,
     safety_answer,
     validate_question,
 )
@@ -52,6 +53,16 @@ class AssistantSafetyTests(unittest.TestCase):
             ),
             "جزء أول وجزء ثانٍ",
         )
+
+    def test_offline_fallback_answers_common_newborn_question(self) -> None:
+        answer = offline_answer("كيف أجهز مكان نوم آمن؟")
+        self.assertIn("على ظهره", answer)
+        self.assertIn("وسائد", answer)
+
+    def test_offline_fallback_stays_conservative_for_unknown_question(self) -> None:
+        answer = offline_answer("هل هذا طبيعي؟")
+        self.assertIn("إرشادات عامة محدودة", answer)
+        self.assertIn("لا أستطيع التشخيص", answer)
 
 
 if __name__ == "__main__":

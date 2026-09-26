@@ -25,7 +25,9 @@ from app.assistant import (
     AssistantProviderError,
     AssistantRateLimited,
     AssistantUnavailable,
+    assistant_mode,
     generate_answer,
+    offline_assistant_available,
     provider_is_configured,
     validate_question,
 )
@@ -363,6 +365,8 @@ def health(response: Response) -> dict[str, bool | str]:
         "status": "ok" if model_ready and not _model_error else "model_unavailable",
         "model_ready": model_ready,
         "assistant_configured": provider_is_configured(),
+        "assistant_available": offline_assistant_available(),
+        "assistant_mode": assistant_mode(),
     }
 
 

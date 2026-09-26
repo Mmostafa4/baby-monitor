@@ -26,10 +26,10 @@ class NewbornAssistantService {
         uri.userInfo.isEmpty;
   }
 
-  Future<bool> checkProviderReady() async {
-    if (!isConfigured) return false;
+  Future<NewbornAssistantStatus> checkStatus() async {
+    if (!isConfigured) return const NewbornAssistantStatus.unavailable();
     final endpointUri = Uri.tryParse(endpoint);
-    if (endpointUri == null) return false;
+    if (endpointUri == null) return const NewbornAssistantStatus.unavailable();
 
     final healthUri = endpointUri.replace(
       path: '/v1/health',
@@ -38,13 +38,36 @@ class NewbornAssistantService {
     try {
       final response = await getJson(healthUri)
           .timeout(const Duration(seconds: 8));
-      if (response.statusCode != 200) return false;
+      if (response.statusCode != 200) {
+        return const NewbornAssistantStatus.unavailable();
+      }
       final decoded = jsonDecode(response.body);
-      return decoded is Map<String, dynamic> &&
-          decoded['assistant_configured'] == true;
+      if (decoded is! Map<String, dynamic>) {
+        return const NewbornAssistantStatus.unavailable();
+      }
+      final providerConfigured = decoded['assistant_configured'] == true;
+      final available = decoded['assistant_available'] == true ||
+          providerConfigured;
+      final mode = decoded['assistant_mode'] is String
+          ? decoded['assistant_mode'] as String
+          : providerConfigured
+              ? 'provider'
+              : available
+                  ? 'offline'
+                  : 'unavailable';
+      return NewbornAssistantStatus(
+        available: available,
+        providerConfigured: providerConfigured,
+        mode: mode,
+      );
     } catch (_) {
-      return false;
+      return const NewbornAssistantStatus.unavailable();
     }
+  }
+
+  Future<bool> checkProviderReady() async {
+    final status = await checkStatus();
+    return status.providerConfigured;
   }
 
   static String _defaultEndpoint() {
@@ -123,6 +146,25 @@ class NewbornAssistantService {
     }
     return answer.trim();
   }
+}
+
+class NewbornAssistantStatus {
+  final bool available;
+  final bool providerConfigured;
+  final String mode;
+
+  const NewbornAssistantStatus({
+    required this.available,
+    required this.providerConfigured,
+    required this.mode,
+  });
+
+  const NewbornAssistantStatus.unavailable()
+      : available = false,
+        providerConfigured = false,
+        mode = 'unavailable';
+
+  bool get isOffline => available && !providerConfigured;
 }
 
 class NewbornAssistantException implements Exception {
