@@ -349,15 +349,15 @@ def _classify(frames: bytes) -> tuple[str, int]:
 _PRIVATE_BETA_LOGIN_PAGE = "<!doctype html>\n<html lang=\"ar\" dir=\"rtl\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n  <meta name=\"theme-color\" content=\"#fdfbff\">\n  <title>Baby Monitor • النسخة الخاصة</title>\n  <style>\n    :root { color-scheme: light; font-family: system-ui, -apple-system, sans-serif; }\n    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #fdfbff; color: #25202a; }\n    main { box-sizing: border-box; width: min(92vw, 420px); padding: 28px; border-radius: 24px; background: white; box-shadow: 0 10px 35px #34213916; }\n    h1 { margin: 0 0 8px; font-size: 1.6rem; }\n    p { line-height: 1.7; color: #625968; }\n    label { display: block; margin: 20px 0 8px; font-weight: 600; }\n    input, button { box-sizing: border-box; width: 100%; min-height: 50px; border-radius: 14px; font: inherit; }\n    input { border: 1px solid #aaa1ae; padding: 12px; direction: ltr; text-align: center; }\n    button { margin-top: 14px; border: 0; background: #9c3970; color: white; font-weight: 700; }\n    #status { min-height: 24px; }\n  </style>\n</head>\n<body>\n  <main>\n    <h1>Baby Monitor</h1>\n    <p>نسخة تجريبية خاصة للاستخدام على هاتفك. أدخلي رمز الدخول الذي وصلك لفتح التطبيق.</p>\n    <form id=\"login\">\n      <label for=\"code\">رمز دخول النسخة التجريبية</label>\n      <input id=\"code\" type=\"password\" autocomplete=\"current-password\" required maxlength=\"128\">\n      <button id=\"submit\" type=\"submit\">فتح التطبيق</button>\n    </form>\n    <p id=\"status\" role=\"status\" aria-live=\"polite\"></p>\n  </main>\n  <script>\n    const form = document.getElementById('login');\n    const input = document.getElementById('code');\n    const status = document.getElementById('status');\n    const button = document.getElementById('submit');\n    form.addEventListener('submit', async (event) => {\n      event.preventDefault();\n      button.disabled = true;\n      status.textContent = 'جارٍ التحقق…';\n      try {\n        const response = await fetch('/v1/session', {\n          method: 'POST',\n          credentials: 'same-origin',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({ access_code: input.value })\n        });\n        if (response.ok) {\n          location.replace('/app/');\n          return;\n        }\n        status.textContent = response.status === 503\n          ? 'خدمة النسخة الخاصة لم تُجهّز بعد.'\n          : response.status === 429\n            ? 'محاولات كثيرة. انتظري قليلًا ثم أعيدي المحاولة.'\n            : 'الرمز غير صحيح. تحققي منه وأعيدي المحاولة.';\n      } catch (_) {\n        status.textContent = 'تعذر الاتصال. تحققي من الإنترنت وحاولي مرة أخرى.';\n      } finally {\n        button.disabled = false;\n      }\n    });\n  </script>\n</body>\n</html>"
 
 _PRIVATE_BETA_LOGIN_PAGE = _PRIVATE_BETA_LOGIN_PAGE.replace(
-    "    const button = document.getElementById('submit');\\n",
-    "    const button = document.getElementById('submit');\\n"
-    "    const requestedNext = new URLSearchParams(location.search).get('next') || '/app/';\\n"
-    "    const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//')\\n"
-    "      ? requestedNext\\n"
-    "      : '/app/';\\n",
+    "    const button = document.getElementById('submit');\n",
+    "    const button = document.getElementById('submit');\n"
+    "    const requestedNext = new URLSearchParams(location.search).get('next') || '/app/';\n"
+    "    const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//')\n"
+    "      ? requestedNext\n"
+    "      : '/app/';\n",
 ).replace(
-    "          location.replace('/app/');\\n",
-    "          location.replace(next);\\n",
+    "          location.replace('/app/');\n",
+    "          location.replace(next);\n",
 )
 
 @app.get("/", response_class=HTMLResponse)
