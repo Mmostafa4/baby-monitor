@@ -5,13 +5,13 @@
 - Arabic-only onboarding, a local child profile, and an explicit medical notice. Native date pickers and system controls are localized in Arabic.
 - Editable child profile, date-based daily care logs, and local history for crying, feeds, wet diapers, sleep, temperature, and notes.
 - Settings that explain local data handling and let the parent erase the local profile, care logs, and vaccine marks.
-- Optional GPS consent in setup and foreground-only location lookup from Emergency. Successful location lookup is shown with a check mark; coordinates are passed to a Google Maps search and are not saved by the app.
+- Optional GPS consent in setup and foreground-only location lookup from Emergency. Successful location lookup is shown with a check mark; the caregiver can choose a nearby children's hospital, pediatric clinic, or pediatric doctor search. Coordinates are passed to Google Maps and are not saved by the app; results are not a curated medical directory.
 - Ten-second microphone capture with a captured-byte check and short-lived in-memory playback. The parent can delete it without uploading.
 - An optional experimental cry-analysis client and CPU backend. A separate confirmation is required for each upload; the backend does not persist the audio. The private Safari beta displays a 0–100 uncalibrated model score, not a measured probability or medical accuracy.
 - Five caregiver guide buttons for hunger, colic/gas, discomfort, comfort, and overstimulation, with descriptions and external Minnesota WIC educational videos. The videos are examples of infant behavior, not acoustic proof of any cause.
 - Age-based vaccine reminder tables for the countries in onboarding, local completion checkboxes, and source links. Egypt now includes birth-dose timing windows, date calculation from the entered DOB, the 2/4/6-month IPV rows, vitamin-A supplement rows at 6/12/18 months, side-effect details, and a separate clinician-discussion list for additional vaccines.
 - A local weekly newborn-development guide selected from the child's date of birth, with CDC links and no milestone diagnosis.
-- Emergency guidance and an optional newborn Q&A screen that shows whether its protected service is configured.
+- Emergency guidance and a newborn Q&A screen that checks `/v1/health` and shows whether the server-side text-model provider is configured.
 - Android/iOS scaffold with microphone and foreground location declarations.
 - GitHub Actions build paths for a sideloadable Android test APK and unsigned iOS simulator app; a manually started, signed TestFlight beta path is prepared for accounts that have Apple signing and App Store Connect credentials.
 

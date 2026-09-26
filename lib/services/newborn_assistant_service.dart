@@ -26,6 +26,27 @@ class NewbornAssistantService {
         uri.userInfo.isEmpty;
   }
 
+  Future<bool> checkProviderReady() async {
+    if (!isConfigured) return false;
+    final endpointUri = Uri.tryParse(endpoint);
+    if (endpointUri == null) return false;
+
+    final healthUri = endpointUri.replace(
+      path: '/v1/health',
+      queryParameters: const <String, String>{},
+    );
+    try {
+      final response = await getJson(healthUri)
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return false;
+      final decoded = jsonDecode(response.body);
+      return decoded is Map<String, dynamic> &&
+          decoded['assistant_configured'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static String _defaultEndpoint() {
     final configured = configuredEndpoint.trim();
     if (configured.isNotEmpty) return configured;

@@ -1,6 +1,18 @@
 import 'package:http/browser_client.dart';
 import 'package:http/http.dart' as http;
 
+Future<http.Response> getJson(
+  Uri uri, {
+  Map<String, String> headers = const <String, String>{},
+}) async {
+  final client = BrowserClient()..withCredentials = true;
+  try {
+    return await client.get(uri, headers: headers);
+  } finally {
+    client.close();
+  }
+}
+
 Future<http.Response> postJson(
   Uri uri, {
   required Map<String, String> headers,

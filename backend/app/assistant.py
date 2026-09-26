@@ -103,6 +103,17 @@ SYSTEM_PROMPT = """
 """.strip()
 
 
+def provider_is_configured() -> bool:
+    parsed_url = urlparse(AI_API_URL)
+    return bool(
+        AI_API_URL
+        and AI_API_KEY
+        and AI_MODEL
+        and parsed_url.scheme == "https"
+        and parsed_url.netloc
+    )
+
+
 def _provider_payload(question: str) -> dict[str, Any]:
     return {
         "model": AI_MODEL,
@@ -154,7 +165,7 @@ async def generate_answer(question: str) -> str:
 
     import httpx
 
-    if not AI_API_URL or not AI_API_KEY or not AI_MODEL:
+    if not provider_is_configured():
         raise AssistantUnavailable("Text-model service is not configured.")
     parsed_url = urlparse(AI_API_URL)
     if parsed_url.scheme != "https" or not parsed_url.netloc:

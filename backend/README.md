@@ -53,7 +53,7 @@ Use the same defines with flutter build ios --release. The app asks for consent 
 
 ## Endpoints
 
-- GET /v1/health: model readiness only; contains no account or audio data.
+- GET /v1/health: returns `model_ready` for the cry model and `assistant_configured` for the text-model provider; it contains no account or audio data. These are separate readiness checks.
 - POST /v1/cry-analysis: authenticated multipart upload using field audio, mono 16 kHz 16-bit PCM WAV, 9.5–10.5 seconds, maximum 400 KB. Silent or near-silent audio is rejected before inference. Returns `category`, `advice`, `score_percent`, and `experimental`.
 - POST /v1/newborn-assistant: authenticated JSON with a `question` of 3–900 characters. Returns a general Arabic `answer`; it does not receive the local child profile or audio.
 

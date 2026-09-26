@@ -1,5 +1,12 @@
 import 'package:http/http.dart' as http;
 
+Future<http.Response> getJson(
+  Uri uri, {
+  Map<String, String> headers = const <String, String>{},
+}) {
+  return http.get(uri, headers: headers);
+}
+
 Future<http.Response> postJson(
   Uri uri, {
   required Map<String, String> headers,

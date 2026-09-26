@@ -2153,6 +2153,36 @@ DateTime vaccineDueDate(DateTime dob, VaccineScheduleDose dose) {
 
 DateTime dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
+class _NearbyCareOption {
+  final String label;
+  final String searchTerm;
+  final IconData icon;
+
+  const _NearbyCareOption({
+    required this.label,
+    required this.searchTerm,
+    required this.icon,
+  });
+}
+
+const _nearbyCareOptions = [
+  _NearbyCareOption(
+    label: 'مستشفيات أطفال قريبة',
+    searchTerm: 'مستشفى أطفال',
+    icon: Icons.local_hospital_outlined,
+  ),
+  _NearbyCareOption(
+    label: 'عيادات أطفال قريبة',
+    searchTerm: 'عيادة أطفال',
+    icon: Icons.medical_services_outlined,
+  ),
+  _NearbyCareOption(
+    label: 'أطباء أطفال قريبون',
+    searchTerm: 'طبيب أطفال',
+    icon: Icons.person_search_outlined,
+  ),
+];
+
 class Emergency extends StatefulWidget {
   final AppStore store;
 
@@ -2238,7 +2268,7 @@ class _EmergencyState extends State<Emergency> {
           setState(() {
             locationResolved = false;
             locationStatus =
-                'الإذن متاح. اضغطي تحديد مكاني لفتح المستشفى القريب.';
+                'الإذن متاح. اختاري مستشفى أو عيادة أو طبيب أطفال قريب.';
           });
         }
       } catch (_) {
@@ -2258,10 +2288,13 @@ class _EmergencyState extends State<Emergency> {
     if (mounted) setState(() {});
   }
 
-  Uri _hospitalSearchUri({String? coordinates}) {
+  Uri _nearbyCareSearchUri(
+    _NearbyCareOption option, {
+    String? coordinates,
+  }) {
     final query = coordinates == null
-        ? 'مستشفى أطفال near me'
-        : 'مستشفى أطفال near $coordinates';
+        ? '${option.searchTerm} near me'
+        : '${option.searchTerm} near $coordinates';
     return Uri.https(
       'www.google.com',
       '/maps/search/',
@@ -2269,7 +2302,7 @@ class _EmergencyState extends State<Emergency> {
     );
   }
 
-  Future<void> _findNearbyHospital() async {
+  Future<void> _findNearbyCare(_NearbyCareOption option) async {
     final profile = widget.store.profile!;
     if (!profile.locationConsent) {
       setState(() {
@@ -2284,10 +2317,10 @@ class _EmergencyState extends State<Emergency> {
     final mapLaunch = maps_navigation.prepareMapsNavigation();
     var mapOpened = false;
 
-    Future<bool> openHospitalSearch({String? coordinates}) =>
+    Future<bool> openNearbyCareSearch({String? coordinates}) =>
         maps_navigation.openMapsNavigation(
           mapLaunch,
-          _hospitalSearchUri(coordinates: coordinates),
+          _nearbyCareSearchUri(option, coordinates: coordinates),
         );
 
     setState(() {
@@ -2303,11 +2336,11 @@ class _EmergencyState extends State<Emergency> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        mapOpened = await openHospitalSearch();
+        mapOpened = await openNearbyCareSearch();
         if (mounted) {
           setState(() {
             locationStatus = mapOpened
-                ? 'إذن GPS للتطبيق غير متاح؛ فتحت الخرائط للبحث عن مستشفى أطفال قريب.'
+                ? 'إذن GPS غير متاح؛ فتحت الخرائط للبحث عن ${option.label}.'
                 : 'إذن الموقع غير متاح. اسمحي بالموقع من إعدادات الجهاز أو المتصفح ثم حاولي مجددًا.';
           });
         }
@@ -2316,11 +2349,11 @@ class _EmergencyState extends State<Emergency> {
 
       final enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
-        mapOpened = await openHospitalSearch();
+        mapOpened = await openNearbyCareSearch();
         if (mounted) {
           setState(() {
             locationStatus = mapOpened
-                ? 'خدمة GPS متوقفة؛ فتحت الخرائط للبحث عن مستشفى أطفال قريب.'
+                ? 'خدمة GPS متوقفة؛ فتحت الخرائط للبحث عن ${option.label}.'
                 : 'خدمة الموقع متوقفة. فعّليها ثم حاولي مرة أخرى.';
           });
         }
@@ -2337,29 +2370,29 @@ class _EmergencyState extends State<Emergency> {
       if (!mounted) return;
       setState(() {
         locationResolved = true;
-        locationStatus = 'تم تحديد الموقع. جارٍ فتح خرائط المستشفيات القريبة...';
+        locationStatus = 'تم تحديد الموقع. جارٍ فتح خرائط ${option.label}...';
       });
 
       final coordinates =
           position.latitude.toString() + ',' + position.longitude.toString();
-      mapOpened = await openHospitalSearch(coordinates: coordinates);
+      mapOpened = await openNearbyCareSearch(coordinates: coordinates);
       if (!mapOpened) {
-        mapOpened = await openHospitalSearch();
+        mapOpened = await openNearbyCareSearch();
       }
       if (mounted) {
         setState(() {
           locationStatus = mapOpened
-              ? 'تم فتح خرائط البحث عن مستشفيات أطفال قريبة.'
+              ? 'تم فتح خرائط البحث عن ${option.label}.'
               : 'تم تحديد الموقع، لكن تعذر فتح الخرائط على هذا الجهاز.';
         });
       }
     } catch (_) {
-      mapOpened = await openHospitalSearch();
+      mapOpened = await openNearbyCareSearch();
       if (mounted) {
         setState(() {
           locationResolved = false;
           locationStatus = mapOpened
-              ? 'تعذر قراءة GPS بدقة؛ فتحت الخرائط للبحث عن مستشفى أطفال قريب.'
+              ? 'تعذر قراءة GPS بدقة؛ فتحت الخرائط للبحث عن ${option.label}.'
               : 'تعذر تحديد الموقع وفتح الخرائط. تحققي من الإذن واتصال الجهاز ثم حاولي مجددًا.';
         });
       }
@@ -2434,23 +2467,39 @@ class _EmergencyState extends State<Emergency> {
                     'لا يُحفظ الموقع في التطبيق؛ يُشارك مع الخرائط فقط عند الضغط على البحث.',
                   ),
                 ),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: locating ? null : _findNearbyHospital,
-                    icon: locating
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.map_outlined),
-                    label: Text(
-                      locating
-                          ? 'جارٍ تحديد الموقع...'
-                          : 'ابحث عن مستشفى أطفال قريب',
+                const Text(
+                  'اختاري نوع الخدمة التي تريدين البحث عنها في موقعك الحالي:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                for (final option in _nearbyCareOptions)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: locating
+                            ? null
+                            : () => _findNearbyCare(option),
+                        icon: locating
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(option.icon),
+                        label: Text(
+                          locating
+                              ? 'جارٍ تحديد الموقع...'
+                              : 'ابحث عن ${option.label}',
+                        ),
+                      ),
                     ),
                   ),
+                const Text(
+                  'النتائج تأتي من Google Maps وقد تحتاجين إلى التأكد من التخصص وساعات العمل قبل الذهاب.',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],
             ),
@@ -2551,7 +2600,19 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
   final List<_AssistantMessage> messages = <_AssistantMessage>[];
   bool sending = false;
   bool assistantConsent = false;
+  bool? assistantProviderReady;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_refreshProviderStatus());
+  }
+
+  Future<void> _refreshProviderStatus() async {
+    final ready = await service.checkProviderReady();
+    if (mounted) setState(() => assistantProviderReady = ready);
+  }
 
   @override
   void dispose() {
@@ -2563,10 +2624,10 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
     final text = question.text.trim();
     if (sending || text.isEmpty) return;
 
-    if (!service.isConfigured) {
+    if (!service.isConfigured || assistantProviderReady == false) {
       setState(() {
         error =
-            'المساعد الذكي غير متصل في هذه النسخة؛ لم يُرسل سؤالك. يحتاج التطبيق إلى خدمة آمنة على الخادم قبل تفعيله.';
+            'مزود المساعد الذكي غير مفعّل على الخادم؛ لم يُرسل سؤالك. يحتاج التطبيق إلى إعداد خدمة آمنة ومفتاحها على الخادم فقط.';
       });
       return;
     }
@@ -2605,10 +2666,20 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
     try {
       final answer = await service.ask(text);
       if (mounted) {
-        setState(() => messages.add(_AssistantMessage(answer, false)));
+        setState(() {
+          assistantProviderReady = true;
+          messages.add(_AssistantMessage(answer, false));
+        });
       }
     } on NewbornAssistantException catch (exception) {
-      if (mounted) setState(() => error = exception.message);
+      if (mounted) {
+        setState(() {
+          if (exception.message.contains('غير جاهزة')) {
+            assistantProviderReady = false;
+          }
+          error = exception.message;
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() =>
@@ -2636,9 +2707,11 @@ class _NewbornAssistantState extends State<NewbornAssistant> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  service.isConfigured
-                      ? 'نقطة المساعد الآمنة متاحة للإرسال. اكتبي سؤالًا عامًا دون اسم الطفل أو بيانات تعريفية؛ إذا لم تُجهّز خدمة النموذج سيظهر تنبيه.'
-                      : 'المساعد الذكي غير متصل بعد. إعداد الخادم ومفتاح الخدمة غير موجودين؛ لن يُرسل السؤال حتى يتم الإعداد.',
+                  assistantProviderReady == true
+                      ? 'المساعد متصل بخدمة آمنة. اكتبي سؤالًا عامًا دون اسم الطفل أو بيانات تعريفية.'
+                      : assistantProviderReady == false
+                          ? 'واجهة المساعد موجودة، لكن مزود النموذج غير مفعّل على الخادم بعد؛ لن يُرسل السؤال حتى يكتمل الإعداد.'
+                          : 'جارٍ التحقق من اتصال مزود المساعد…',
                 ),
                 const SizedBox(height: 6),
                 const Text(

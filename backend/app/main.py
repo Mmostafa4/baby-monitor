@@ -26,6 +26,7 @@ from app.assistant import (
     AssistantRateLimited,
     AssistantUnavailable,
     generate_answer,
+    provider_is_configured,
     validate_question,
 )
 from app.request_limits import MaxRequestBodySize
@@ -361,6 +362,7 @@ def health(response: Response) -> dict[str, bool | str]:
     return {
         "status": "ok" if model_ready and not _model_error else "model_unavailable",
         "model_ready": model_ready,
+        "assistant_configured": provider_is_configured(),
     }
 
 

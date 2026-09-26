@@ -8,12 +8,12 @@ The public GitHub Pages preview remains on `main`. This branch adds a separate p
 
 - Local child profile and medical-notice consent.
 - Editable child profile, a daily care log with date navigation and local history, copyable summaries for a caregiver or clinician, and a control to erase local data.
-- Optional GPS consent during setup. Location is requested only after consent, and the Emergency screen shows a check when a location fix succeeds before opening a Google Maps search. Coordinates are not saved by the app.
+- Optional GPS consent during setup. The Emergency screen shows a check when a location fix succeeds and offers separate Google Maps searches for nearby children's hospitals, pediatric clinics, or pediatric doctors. Coordinates are not saved by the app; map results still need caregiver verification.
 - Up to 10 seconds of microphone capture, in-memory playback, and deletion. Silent or very faint recordings ask for a new recording instead of showing an analysis result; this audio-level check does not detect whether a baby is crying.
 - Optional experimental cry classification: a configured build asks for separate consent before sending audio to an HTTPS backend. It shows the top-ranked category and a 0–100 raw model score. The score is uncalibrated, not an accuracy percentage or medical probability. The model cannot identify a need for comfort or distress. The Safari beta signs in with a private invite code and same-origin session; native builds still need Firebase settings. See [the research and evidence review](docs/cry-analysis-evidence.md), [preview service setup](backend/README.md), and [phone test setup](docs/preview-setup.md).
 - Age-based vaccination reminders for the countries listed in onboarding, with the Egypt routine table checked against Egyptian Health Council/Ministry/UNICEF sources, date calculation from the entered birth date, vitamin-A supplement entries, side-effect guidance, local completion marks, and source links. Additional vaccines are clearly separated as clinician-discussion items; these reminders are not a clinical catch-up plan.
 - A weekly newborn-development guide based on the child's local date of birth, with CDC source links. It is an age-based educational prompt, not a milestone test.
-- An optional newborn Q&A screen. It can call a protected HTTPS backend with an OpenAI-compatible text-model provider; the default build sends no question until that service is configured.
+- A newborn Q&A screen with a protected HTTPS backend adapter for an OpenAI-compatible text-model provider. The screen checks `/v1/health` and stays blocked until the server-side provider URL, key, and model are configured; no provider key is shipped in Flutter.
 - Subscription UI is a mockup; no purchase is connected.
 
 ## Device permissions
