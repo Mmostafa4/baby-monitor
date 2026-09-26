@@ -1,8 +1,10 @@
 import unittest
+from unittest.mock import AsyncMock, patch
 
 from app.assistant import (
     MAX_QUESTION_CHARS,
     _extract_answer,
+    generate_answer,
     offline_answer,
     safety_answer,
     validate_question,
@@ -61,8 +63,28 @@ class AssistantSafetyTests(unittest.TestCase):
 
     def test_offline_fallback_stays_conservative_for_unknown_question(self) -> None:
         answer = offline_answer("هل هذا طبيعي؟")
-        self.assertIn("إرشادات عامة محدودة", answer)
+        self.assertIn("الرد الإرشادي", answer)
         self.assertIn("لا أستطيع التشخيص", answer)
+
+
+class AssistantProviderFallbackTests(unittest.IsolatedAsyncioTestCase):
+    async def test_provider_quota_returns_a_complete_local_answer(self) -> None:
+        class FakeResponse:
+            status_code = 429
+
+        with patch("app.assistant.provider_is_configured", return_value=True):
+            with patch(
+                "app.assistant.AI_API_URL",
+                "https://example.test/v1/chat/completions",
+            ):
+                with patch(
+                    "app.assistant._provider_response",
+                    new=AsyncMock(return_value=FakeResponse()),
+                ):
+                    answer = await generate_answer("كيف أجهز مكان نوم آمن؟")
+
+        self.assertIn("إرشادات النوم الآمن", answer)
+        self.assertIn("على ظهره", answer)
 
 
 if __name__ == "__main__":
