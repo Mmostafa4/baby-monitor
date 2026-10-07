@@ -22,7 +22,11 @@ class BabyMonitorApp extends StatefulWidget {
 class _BabyMonitorAppState extends State<BabyMonitorApp> {
   final store = AppStore();
   bool doctorClosed = false;
-  late final Future<void> startup = widget.doctorOnly ? Future<void>.value() : store.load();
+  late final Future<void> startup = widget.doctorOnly
+      ? Future<void>.value()
+      : store.load().then((_) {
+          if (mounted) setState(() {});
+        });
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
