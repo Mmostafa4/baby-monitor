@@ -9,6 +9,7 @@
     <key>LSRequiresIPhoneOS</key><true/>
     <key>UILaunchStoryboardName</key><string>LaunchScreen</string>
     <key>UIMainStoryboardFile</key><string>Main</string>
+    <key>NSLocationWhenInUseUsageDescription</key><string>نستخدم موقعك عند طلب البحث عن مستشفيات قريبة.</string>
     <key>NSMicrophoneUsageDescription</key><string>نستخدم الميكروفون لتسجيل 10 ثوانٍ من بكاء الطفل داخل نسخة MVP التجريبية.</string>
     <key>UIApplicationSupportsIndirectInputEvents</key><true/>
     <key>UILaunchScreen</key><dict/>

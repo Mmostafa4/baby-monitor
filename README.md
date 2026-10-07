@@ -4,13 +4,14 @@ Flutter MVP prepared as an installable iPhone Safari web app. This is not an App
 
 ## What is included
 
-- Consent and child profile setup. The profile stays in local browser storage.
+- One-time consent and child profile setup, with saved gender and pink/light-blue theme. The profile stays in local browser storage.
 - Arabic interface. The selected language is saved, but translations are not implemented yet.
 - Up to 10 seconds of microphone capture through an in-memory stream. Audio chunks are discarded as they arrive; no audio file is kept or uploaded.
 - The cry screen says “Analysis is currently unavailable.” The app does not interpret crying.
-- Reassurance fields are temporary and are not saved.
+- Reassurance fields survive tab switches but remain temporary across app restarts.
 - Vaccination entries are placeholders; official schedules and reminders are not connected.
-- Emergency guidance is static; nearby hospital search is not implemented.
+- Emergency hospital search opens Maps with on-demand location and a no-location fallback.
+- Isolated local Doctor profile prototype (name and specialist/consultant title); no live consultations, verification or contact-sharing enforcement.
 - The subscription screen is a mockup; purchases are not connected.
 
 ## Use it on iPhone
@@ -34,3 +35,7 @@ Never ship API keys, payment secrets, or admin credentials in the app. Verify su
 Install Flutter, run `flutter create --platforms=web .` and `flutter pub get`, then `flutter run -d chrome`. The public iPhone release is served over HTTPS through GitHub Pages.
 
 The prototype stores the child profile in browser storage, which is not encrypted. Audio is not retained.
+
+## Next test build: 0.2.0+2
+
+See [implementation and device test checklist](docs/mvp-test-2026-10-07.md). The separate test branch builds a downloadable web artifact without publishing. Silent/insufficient recordings never produce results; audible recordings still have no interpretation because the analysis backend is not connected.

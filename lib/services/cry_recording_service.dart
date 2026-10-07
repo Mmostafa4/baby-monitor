@@ -3,10 +3,13 @@ import 'dart:typed_data';
 
 import 'package:record/record.dart';
 
+import 'audio_activity.dart';
+
 class CryRecordingService {
   final AudioRecorder _recorder = AudioRecorder();
   StreamSubscription<Uint8List>? _audioSubscription;
   bool _hasPendingCleanup = false;
+  AudioActivity _activity = AudioActivity();
 
   bool get hasPendingCleanup => _hasPendingCleanup;
 
@@ -22,6 +25,7 @@ class CryRecordingService {
     }
 
     try {
+      _activity = AudioActivity();
       final audioStream = await _recorder.startStream(
         const RecordConfig(
           encoder: AudioEncoder.pcm16bits,
@@ -31,7 +35,12 @@ class CryRecordingService {
       );
 
       // Consume each chunk immediately and keep no audio bytes in memory.
-      _audioSubscription = audioStream.listen((_) {});
+      _audioSubscription = audioStream.listen(
+        _activity.add,
+        onError: (Object error) {
+          _activity.failed = true;
+        },
+      );
       _hasPendingCleanup = true;
     } catch (_) {
       try {
@@ -48,24 +57,33 @@ class CryRecordingService {
 
   /// Stop capture and discard it. This MVP has no analysis backend, so audio
   /// is never retained or uploaded.
-  Future<void> stopAndDelete() async {
-    final isRecording = await _recorder.isRecording();
-    if (!isRecording && !_hasPendingCleanup && _audioSubscription == null) {
-      return;
+  Future<bool> stopAndDelete() async {
+    if (!_hasPendingCleanup && _audioSubscription == null) return false;
+    await _cleanup();
+    if (_activity.failed) {
+      throw const CryRecordingException('انقطع استقبال الصوت. أعد التسجيل.');
     }
+    return _activity.detected;
+  }
 
+  Future<void> _cleanup() async {
     try {
+      await _recorder.stop();
       await _audioSubscription?.cancel();
       _audioSubscription = null;
       await _recorder.cancel();
       _hasPendingCleanup = false;
     } catch (_) {
       _hasPendingCleanup = true;
-      throw const CryRecordingException('تعذر إنهاء التسجيل بأمان. حاول مرة أخرى.');
+      throw const CryRecordingException(
+        'تعذر إنهاء التسجيل بأمان. حاول مرة أخرى.',
+      );
     }
   }
 
-  Future<void> cancel() => stopAndDelete();
+  Future<void> cancel() async {
+    if (_hasPendingCleanup || _audioSubscription != null) await _cleanup();
+  }
 
   Future<void> dispose() async {
     try {

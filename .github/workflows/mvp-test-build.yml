@@ -1,0 +1,25 @@
+name: MVP test build (no deployment)
+on:
+  push:
+    branches: [codex/mvp-test-2026-10-07]
+permissions:
+  contents: read
+jobs:
+  test-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter create --platforms=web .
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      - run: python3 scripts/configure_web.py
+      - run: flutter build web --release --base-href /baby-monitor/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: baby-monitor-mvp-web
+          path: build/web
