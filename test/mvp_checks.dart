@@ -45,6 +45,18 @@ class FakeCapture extends CryRecordingService {
 }
 
 void main() {
+  testWidgets('Direct Doctor entry never loads or exits into the child app', (tester) async {
+    SharedPreferences.setMockInitialValues({'profile':'Baby|Mother|Father|مصر|العربية|2026-08-24'});
+    await tester.pumpWidget(const BabyMonitorApp(doctorOnly:true));await tester.pumpAndSettle();
+    expect(find.byType(Home),findsNothing);
+    expect(find.byType(ConsentAndProfile),findsNothing);
+    await tester.tap(find.text('إنهاء الوضع'));await tester.pumpAndSettle();
+    await tester.tap(find.text('إنهاء'));await tester.pumpAndSettle();
+    expect(find.text('فتح وضع الطبيب'),findsOneWidget);
+    expect(find.byType(Home),findsNothing);
+    await tester.tap(find.text('فتح وضع الطبيب'));await tester.pumpAndSettle();
+    expect(find.byType(DoctorMode),findsOneWidget);
+  });
   testWidgets(
     'Saved boy profile applies the light blue theme without another disclaimer',
     (tester) async {

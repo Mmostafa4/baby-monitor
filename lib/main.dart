@@ -10,17 +10,19 @@ import 'widgets/baby_monitor_logo.dart';
 import 'screens/doctor_mode.dart';
 import 'screens/emergency_page.dart';
 
-void main() => runApp(const BabyMonitorApp());
+void main() => runApp(BabyMonitorApp(doctorOnly: Uri.base.queryParameters['mode'] == 'doctor'));
 
 class BabyMonitorApp extends StatefulWidget {
-  const BabyMonitorApp({super.key});
+  final bool doctorOnly;
+  const BabyMonitorApp({super.key, this.doctorOnly = false});
   @override
   State<BabyMonitorApp> createState() => _BabyMonitorAppState();
 }
 
 class _BabyMonitorAppState extends State<BabyMonitorApp> {
   final store = AppStore();
-  late final Future<void> startup = store.load();
+  bool doctorClosed = false;
+  late final Future<void> startup = widget.doctorOnly ? Future<void>.value() : store.load();
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -34,7 +36,13 @@ class _BabyMonitorAppState extends State<BabyMonitorApp> {
           ? const Color(0xfff0f8ff)
           : const Color(0xfffff4f8),
     ),
-    home: FutureBuilder<void>(
+    home: widget.doctorOnly
+        ? (doctorClosed
+            ? Scaffold(body: Center(child: FilledButton(
+                onPressed: () => setState(() => doctorClosed = false),
+                child: const Text('فتح وضع الطبيب'))))
+            : DoctorMode(onExit: () => setState(() => doctorClosed = true)))
+        : FutureBuilder<void>(
       future: startup,
       builder: (_, snapshot) {
         if (snapshot.connectionState != ConnectionState.done)

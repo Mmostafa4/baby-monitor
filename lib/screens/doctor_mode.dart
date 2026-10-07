@@ -6,7 +6,8 @@ bool validDoctorName(String value) =>
 
 /// Local profile prototype only; no verification, calls, billing or enforcement.
 class DoctorMode extends StatefulWidget {
-  const DoctorMode({super.key});
+  final VoidCallback? onExit;
+  const DoctorMode({super.key, this.onExit});
   @override
   State<DoctorMode> createState() => _DoctorModeState();
 }
@@ -74,7 +75,9 @@ class _DoctorModeState extends State<DoctorMode> {
         ],
       ),
     );
-    if (mounted && confirmed == true) Navigator.of(context).pop();
+    if (mounted && confirmed == true) {
+      if (widget.onExit != null) { widget.onExit!(); } else { Navigator.of(context).pop(); }
+    }
   }
 
   @override
