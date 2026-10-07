@@ -99,7 +99,9 @@ class _EmergencyPageState extends State<EmergencyPage> {
             ? null
             : () async {
                 try {
-                  await launchUrl(hospitalMapUri(), webOnlyWindowName: '_self');
+                  if (!await launchUrl(hospitalMapUri(), webOnlyWindowName: '_self') && mounted) {
+                    setState(() => message = 'انسخ الرابط أدناه وافتحه في المتصفح.');
+                  }
                 } catch (_) {
                   if (mounted)
                     setState(
